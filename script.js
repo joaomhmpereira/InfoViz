@@ -1,21 +1,26 @@
 const margin = { top: 20, right: 30, bottom: 40, left: 90 };
-const width = 1000 - margin.left - margin.right;
-const height = 500 - margin.top - margin.bottom;
+const width = 600 - margin.left - margin.right;
+const height = 400 - margin.top - margin.bottom;
+
 
 function init(){
     //createParallelCoordinates("#chart1");
     createGoalBarChart("#chart1");
+    createBubbleChart("#chart2");
     d3.select("#male").on("click", () => {
         //updateParallelCoordinates(0);
         updateGoalBarChart(0);
+        updateBubbleChart(0);
     })
     d3.select("#female").on("click", () => {
         //updateParallelCoordinates(1);
         updateGoalBarChart(1);
+        updateBubbleChart(1);
     })
     d3.select("#all").on("click", () => {
         //updateParallelCoordinates(-1);
         updateGoalBarChart(-1);
+        updateBubbleChart(-1);
     })
 }
 
@@ -51,6 +56,160 @@ function barChartColor(d){
             break;
     }
     return toReturn;
+}
+
+function sameValuesData(data) {
+    var array = [];
+    var count = 0;
+    for (var i = 0; i < 10; i++) {
+        for (var j = 0; j < 10; j++) {
+            var newData = data.filter((d) => {return d.imprace == i && d.shar_o == j})
+            var object = {
+                id: count,
+                x: i,
+                y: j,
+                amount: newData.length
+            }
+            count++;
+            if (newData.length != 0) {
+                array.push(object)
+                console.log(newData.length)
+            }
+        }
+    }
+    return array;
+}
+
+function bubbleSize(value) {
+    if (value == 8) {
+        return 4
+    }
+    else {
+        //for every 100 people, size increases 0.8
+        return (value-8)*0.8/100+4
+    }
+}
+
+function createBubbleChart(id) {
+    const svg = d3
+        .select(id)
+        .attr('width',  width + margin.left + margin.right)
+        .attr('height',  height + margin.top + margin.bottom)
+        //append grouping element 'g' that allows us to apply margins
+        .append("g")
+        .attr("id","gBubbleChart")
+        .attr('transform', `translate(${margin.left}, ${margin.top})`);
+    d3.json("SD_With_Derived.json").then(function (data) {
+        var array = sameValuesData(data);
+        console.log(array)
+
+        const x = d3
+            .scaleLinear()
+            .domain([10, 0])
+            .range([width, 0]);
+        svg
+            .append("g")
+            .attr("id", "gXAxis")
+            .attr("transform", `translate(0, ${height})`)
+            .call(d3.axisBottom(x));
+        svg
+            .append("text")
+            .attr("class", "x label")
+            .attr("text-anchor", "end")
+            .attr("x", width - 95)
+            .attr("y", height + 35)
+            .text("Importance of Shared Interests");
+    
+        const y = d3
+            .scaleLinear()
+            .domain([0, 10])
+            .range([height, 0]);
+        svg
+            .append("g")
+            .attr("id", "gYAxis")
+            .call(d3.axisLeft(y));
+        svg
+            .selectAll("circle.circleValues") 
+            .data(array, (d) => d.id) 
+            .join("circle")
+            .attr("class", "circleValues itemValue")
+            .attr("cx", (d) => x(d.x))
+            .attr("cy", (d) => y(d.y))
+            //default size of 4 for min value (amount = 8)
+            .attr("r", (d) => bubbleSize(d.amount))
+            .style("fill", "magenta")
+        svg
+            .append("text")
+            .attr("class", "y label")
+            .attr("text-anchor", "end")
+            .attr("y", -45)
+            .attr("x", -40)
+            .attr("dy", ".75em")
+            .attr("transform", "rotate(-90)")
+            .text("Importance of Partner's Race");
+        });
+        
+}
+
+function updateBubbleChart(gender) {
+    console.log("Clicked: " + gender)
+    d3.json("SD_With_Derived.json").then(function (data) {
+        if(gender != -1){
+            data = data.filter(function(elem){
+                return elem.gender == gender;
+            })
+        } else {
+            data = data
+        }
+        const svg = d3.select("#gBubbleChart");
+
+        var array = sameValuesData(data);
+        console.log(array)
+
+        const x = d3
+            .scaleLinear()
+            .domain([10, 0])
+            .range([width, 0]);
+        
+        svg.select("#gXAxis").call(d3.axisBottom(x).tickSizeOuter(0));
+
+        const y = d3
+            .scaleLinear()
+            .domain([0, 10])
+            .range([height, 0]);
+
+        svg.select("#gYAxis").call(d3.axisLeft(y));
+        
+        svg
+            .selectAll("circle.circleValues") 
+            .data(array, (d) => d.id) 
+            .join(
+            (enter) => {
+                circles = enter
+                .append("circle")
+                .attr("class", "circleValues itemValue")
+                .attr("cx", (d) => x(d.x))
+                .attr("cy", (d) => y(0))
+                .attr("r", 0)
+                .style("fill", "magenta")
+                circles
+                .transition()
+                .duration(1000)
+                .attr("r", (d) => bubbleSize(d.amount));
+            },
+            (update) => {
+                update
+                .transition()
+                .duration(1000)
+                .attr("cx", (d) => x(d.x))
+                .attr("cy", (d) => y(d.y))
+                .attr("r", (d) => bubbleSize(d.amount));
+            },
+            (exit) => {
+                exit.remove();
+            }
+        );
+    });
 }
 
 function createGoalBarChart(id){
@@ -155,7 +314,7 @@ function updateGoalBarChart(gender){
                     .attr("width", x.bandwidth())
                     .attr("height", (d) => height - y(d.percentage));
                 },
-                (exit) => { exit
+                (exit) => { 
                     exit.remove();
                 }
             );
