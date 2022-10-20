@@ -24,6 +24,7 @@ function init(){
     })
 }
 
+
 function color(d){
     if(d["gender"] == 0){
         return "lightblue";
