@@ -67,14 +67,14 @@ function sameValuesData(data) {
             var newData = data.filter((d) => {return d.imprace == i && d.shar_o == j})
             var object = {
                 id: count,
-                x: i,
-                y: j,
+                x: j,
+                y: i,
                 amount: newData.length
             }
             count++;
             if (newData.length != 0) {
                 array.push(object)
-                console.log(newData.length)
+                //console.log(newData.length)
             }
         }
     }
@@ -102,8 +102,8 @@ function createBubbleChart(id) {
         .attr('transform', `translate(${margin.left}, ${margin.top})`);
     d3.json("SD_With_Derived.json").then(function (data) {
         var array = sameValuesData(data);
-        console.log(array)
-
+        //console.log(array)
+        
         const x = d3
             .scaleLinear()
             .domain([10, 0])
@@ -138,7 +138,8 @@ function createBubbleChart(id) {
             .attr("cy", (d) => y(d.y))
             //default size of 4 for min value (amount = 8)
             .attr("r", (d) => bubbleSize(d.amount))
-            .style("fill", "magenta")
+            .attr("fill", "#4dde12")
+            .attr("opacity", 0.8)
         svg
             .append("text")
             .attr("class", "y label")
@@ -165,7 +166,7 @@ function updateBubbleChart(gender) {
         const svg = d3.select("#gBubbleChart");
 
         var array = sameValuesData(data);
-        console.log(array)
+        //console.log(array)
 
         const x = d3
             .scaleLinear()
@@ -192,7 +193,8 @@ function updateBubbleChart(gender) {
                 .attr("cx", (d) => x(d.x))
                 .attr("cy", (d) => y(0))
                 .attr("r", 0)
-                .style("fill", "magenta")
+                .attr("fill", "#4dde12")
+                .attr("opacity", 0.8)
                 circles
                 .transition()
                 .duration(1000)
@@ -225,7 +227,10 @@ function createGoalBarChart(id){
     d3.json("SD_With_Derived.json").then(function (data) {
         
         var percentageData = updateGoalData(data);
-        console.log(percentageData)
+        //console.log(percentageData)
+
+        var keys = percentageData.map((d) => {return d.goal})
+        console.log(keys)
 
         const x = d3
             .scaleBand()
@@ -237,7 +242,7 @@ function createGoalBarChart(id){
             .append("g")
             .attr("id", "gXAxis")
             .attr("transform", `translate(0, ${height})`)
-            .call(d3.axisBottom(x).tickSizeOuter(0));
+            .call(d3.axisBottom(x).tickSizeOuter(0).tickValues([]));
         
         const y = d3.scaleLinear().domain([50, 0]).range([0, height]);
 
@@ -257,6 +262,42 @@ function createGoalBarChart(id){
             .attr("height", (d) => height - y(d.percentage))
             .attr("fill", barChartColor)
 
+        svg.selectAll("mydots")
+            .data(percentageData)
+            .enter()
+            .append("circle")
+            .attr("cx", 250)
+            .attr("cy", function(d,i){ return 50 + i*18}) // 100 is where the first dot appears. 25 is the distance between dots
+            .attr("r", 4)
+            .style("fill", function(d){ return barChartColor(d)})
+
+        svg.selectAll("mylabels")
+           .data(percentageData)
+           .enter()
+           .append("text")
+            .attr("class", "mylabels")
+            .attr("x", 260)
+            .attr("y", function(d,i){ return 56 + i*18}) // 100 is where the first dot appears. 25 is the distance between dots
+            .text(function(d){ return d.goal})
+            .attr("text-anchor", "left")
+            .style("alignment-baseline", "middle")
+        
+        svg
+           .append("text")
+           .attr("class", "x label")
+           .attr("text-anchor", "end")
+           .attr("x", width - 170)
+           .attr("y", height + 35)
+           .text("Participant's Goal");
+        
+        svg
+           .append("text")
+           .attr("class", "y label")
+           .attr("y", -45)
+           .attr("x", -255)
+           .attr("dy", ".75em")
+           .attr("transform", "rotate(-90)")
+           .text("Percentage of participants");
     });
 }
 
@@ -282,7 +323,7 @@ function updateGoalBarChart(gender){
             .range([0,width])
             .padding(0.1);
         
-        svg.select("#gXAxis").call(d3.axisBottom(x).tickSizeOuter(0));
+        svg.select("#gXAxis").call(d3.axisBottom(x).tickSizeOuter(0).tickValues([]));
 
         const y = d3.scaleLinear().domain([50, 0]).range([0, height]);
         svg.select("#gYAxis").call(d3.axisLeft(y));
