@@ -106,7 +106,7 @@ function createBubbleChart(id) {
         
         const x = d3
             .scaleLinear()
-            .domain([10, 0])
+            .domain([10, -1])
             .range([width, 0]);
         svg
             .append("g")
@@ -123,7 +123,7 @@ function createBubbleChart(id) {
     
         const y = d3
             .scaleLinear()
-            .domain([0, 10])
+            .domain([-1, 10])
             .range([height, 0]);
         svg
             .append("g")
@@ -140,6 +140,10 @@ function createBubbleChart(id) {
             .attr("r", (d) => bubbleSize(d.amount))
             .attr("fill", "#4dde12")
             .attr("opacity", 0.8)
+            .on("mouseover", (event, d) => handleMouseOver(d))
+            .on("mouseleave", (event, d) => handleMouseLeave(d))
+            .append("title")
+            .text((d) => d.amount);
         svg
             .append("text")
             .attr("class", "y label")
@@ -170,14 +174,14 @@ function updateBubbleChart(gender) {
 
         const x = d3
             .scaleLinear()
-            .domain([10, 0])
+            .domain([10, -1])
             .range([width, 0]);
         
         svg.select("#gXAxis").call(d3.axisBottom(x).tickSizeOuter(0));
 
         const y = d3
             .scaleLinear()
-            .domain([0, 10])
+            .domain([-1, 10])
             .range([height, 0]);
 
         svg.select("#gYAxis").call(d3.axisLeft(y));
@@ -188,17 +192,21 @@ function updateBubbleChart(gender) {
             .join(
             (enter) => {
                 circles = enter
-                .append("circle")
-                .attr("class", "circleValues itemValue")
-                .attr("cx", (d) => x(d.x))
-                .attr("cy", (d) => y(0))
-                .attr("r", 0)
-                .attr("fill", "#4dde12")
-                .attr("opacity", 0.8)
+                    .append("circle")
+                    .attr("class", "circleValues itemValue")
+                    .attr("cx", (d) => x(d.x))
+                    .attr("cy", (d) => y(0))
+                    .attr("r", 0)
+                    .attr("fill", "#4dde12")
+                    .attr("opacity", 0.8)
+                    .on("mouseover", (event, d) => handleMouseOver(d))
+                    .on("mouseleave", (event, d) => handleMouseLeave(d))
+                    .append("title")
+                    .text((d) => d.amount);
                 circles
-                .transition()
-                .duration(1000)
-                .attr("r", (d) => bubbleSize(d.amount));
+                    .transition()
+                    .duration(1000)
+                    .attr("r", (d) => bubbleSize(d.amount));
             },
             (update) => {
                 update
@@ -432,3 +440,17 @@ function updateGoalData(data){
     
     return percentageData;
 }
+
+function handleMouseOver(item) {
+    d3.selectAll(".itemValue")
+      .filter(function (d, i) {
+        return d.amount == item.amount && item.id == d.id;
+      })
+      .attr("r", bubbleSize(item.amount))
+      .style("fill", "#3b7a57");
+  }
+  
+  function handleMouseLeave(item) {
+    d3.selectAll(".itemValue").style("fill", "#4dde12");
+  }
+  
