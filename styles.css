@@ -1,24 +1,76 @@
 .charts {
-    display: flex;
-    width: 100%;
-    height: 150px;
-    justify-content: space-around;
+	position: relative;
+	/*border: 2px solid red;*/
+	margin-top: 1%;
+	height: 95vh;
+}
+
+.chart {
+	border: 1px solid #000; 
 }
 
 #chart1 {
-    border: 1px;
-    border-radius: 20%;
+	/*border: 0px none;*/
+	position: absolute;
+	top: 10px;
+	left: 10px;
+	width: 68vw;
+	height: 52vh; 
+}
+#chart2 {
+	position: relative;
+	top: 13.5vh;
+	left: 69vw;
+	width: 29vw;
+	height: 39.5vh;  
 }
 
-text {
+#chart2svg{
+	position: absolute;
+	bottom: 10px;
+	right: 40px;
+}
+
+#chart3 { 
+	/*border: 0px none;*/
+	position: absolute;
+	bottom: 10px;
+	left: 10px;
+	width: 37vw;
+	height: 39.5vh;
+}
+
+#chart4 {
+	position: absolute;
+	bottom: 10px;
+	left: 38vw;
+	width: 30.5vw;
+	height: 39.5vh; 
+}
+
+#chart4svg{
+	position: absolute;
+	bottom: 10px;
+	right: 40px;
+}
+
+#chart5 {
+	/*border: 0px none;*/
+	position: absolute;
+	bottom: 10px;
+	left: 69vw;
+	width: 29vw;
+	height: 39.5vh; 
+} 
+
+text, p {
     font-family: 'Inter', sans-serif;
 }
 
 .myButtons {
-    position: relative;
-    margin-top: 20px;
-    left: 50%;
-    right: -50%;
+    position: absolute;
+    top: 6vh;
+	right: -1.5vw;
     transform: translate(-50%, -50%);
 }
 
