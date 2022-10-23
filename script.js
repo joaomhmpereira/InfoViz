@@ -3,8 +3,8 @@ const width = document.documentElement.clientWidth/3.8 - margin.left - margin.ri
 const height = document.documentElement.clientHeight/2.6 - margin.top - margin.bottom;
 
 var currentSelectedBars = [];
-var sharToCheck = [];
-var impraceToCheck = [];
+var currentSelectedBubbles = [];
+var bubbleCombinations = [];
 var currentGender = -1;
 
 function init(){
@@ -14,23 +14,20 @@ function init(){
     d3.select("#male").on("click", () => {
         //updateParallelCoordinates(0);
         currentGender = 0;
-        updateGoalBarChart(currentGender, sharToCheck, impraceToCheck);
-        updateBubbleChart(currentGender, currentSelectedBars, sharToCheck, impraceToCheck,-1);
+        updateGoalBarChart(currentGender, bubbleCombinations);
+        updateBubbleChart(currentGender, currentSelectedBars);
     })
     d3.select("#female").on("click", () => {
         //updateParallelCoordinates(1);
         currentGender = 1;
-        updateGoalBarChart(currentGender, sharToCheck, impraceToCheck);
-        updateBubbleChart(currentGender, currentSelectedBars, sharToCheck, impraceToCheck,-1);
+        updateGoalBarChart(currentGender, bubbleCombinations);
+        updateBubbleChart(currentGender, currentSelectedBars);
     })
     d3.select("#all").on("click", () => {
         //updateParallelCoordinates(-1);
         currentGender = -1;
-        updateGoalBarChart(currentGender, sharToCheck, impraceToCheck);
-        updateBubbleChart(currentGender, currentSelectedBars, sharToCheck, impraceToCheck, -1);
-    })
-    d3.selectAll(".barItemValue").on("click", (d) => {
-        console.log("clicked bar" + d.id)
+        updateGoalBarChart(currentGender, bubbleCombinations);
+        updateBubbleChart(currentGender, currentSelectedBars);
     })
 }
 
@@ -115,6 +112,8 @@ function createGoalBarChart(id){
             .attr("width", (d) => x(d.percentage))
             .attr("height", y.bandwidth())
             .attr("fill", barChartColor)
+            .on("mouseover", (event, d) => handleMouseOverBarChart(d))
+            .on("mouseleave", (event, d) => handleMouseLeaveBarChart())
             .on("click", (event, d) => {
                 //console.log("clicked bar")
                 var id = d.id
@@ -161,7 +160,7 @@ function createGoalBarChart(id){
                     })
                     .attr("opacity", 0.3);
                 }
-                updateBubbleChart(currentGender, currentSelectedBars, sharToCheck, impraceToCheck, -1);
+                updateBubbleChart(currentGender, currentSelectedBars);
                 
             })
 
@@ -175,15 +174,15 @@ function createGoalBarChart(id){
     });
 }
 
-function updateGoalBarChart(gender, shar_o, imprace){
-    console.log("Gender: " + gender + " Shar_o: " + shar_o + " Imprace: " + imprace)
+function updateGoalBarChart(gender, combinations){
+    console.log("Gender: " + gender + " Combinations specified: " + combinations.length)
     d3.json("data.json").then(function (data) {
         //if gender is specified
         if(gender != -1){
             //if shar_o and imprace are specified
-            if(shar_o.length != 0 && imprace.length != 0){
+            if(combinations.length != 0){
                 data = data.filter(function(elem){
-                    return elem.gender == gender && shar_o.includes(elem.shar_o)  && imprace.includes(elem.imprace);
+                    return elem.gender == gender && checkBubbles(elem, combinations);
                 })
             } else { //share_o and imprace are not specified
                 data = data.filter(function(elem){
@@ -191,10 +190,9 @@ function updateGoalBarChart(gender, shar_o, imprace){
                 })
             }
         } else { //gender is not specified
-            console.log("gets here")
-            if(shar_o != 0 && imprace != 0){ //share_o and imprace are specified
+            if(combinations.length != 0){ //share_o and imprace are specified
                 data = data.filter(function(elem){
-                    return shar_o == (elem.shar_o)  && imprace == (elem.imprace);
+                    return checkBubbles(elem, combinations);
                 })
             } else { //share_o and imprace are not specified
                 data = data
@@ -204,7 +202,7 @@ function updateGoalBarChart(gender, shar_o, imprace){
         const svg = d3.select("#gGoal");
 
         var percentageData = updateGoalData(data);
-        console.log("percentage",percentageData)
+        console.log(percentageData)
 
         const x = d3
             .scaleLinear()
@@ -234,10 +232,13 @@ function updateGoalBarChart(gender, shar_o, imprace){
                     .attr("width", (d) => x(0))
                     .attr("height", y.bandwidth())
                     .attr("fill", barChartColor)
+                    .on("mouseover", (event, d) => handleMouseOverBarChart(d))
+                    .on("mouseleave", (event, d) => handleMouseLeaveBarChart())
                 rects
                     .transition()
                     .duration(1500)
                     .attr("width", (d) => x(d.percentage))
+                rects.append("title").text((d) => d.percentage + "%");
                 },
                 (update) => { 
                   update
@@ -324,6 +325,22 @@ function updateGoalData(data){
     return percentageData;
 }
 
+function handleMouseOverBarChart(d){
+    d3.selectAll(".barItemValue")
+      .filter(function(elem) {
+        return d.id == elem.id;
+      })
+      .attr("title", "update")
+      .append("title")
+      .text(function(d) {return d.goal + ": " + (d.percentage).toFixed(2) + "%"})
+}
+
+function handleMouseLeaveBarChart(){
+    d3.selectAll(".barItemValue")
+      .attr("fill", barChartColor);
+}
+
+
 /**
  * ===================================================================================
  * -------------------------------------BUBBLE CHART-------------------------------------
@@ -349,29 +366,10 @@ function sameValuesData(data) {
             }
         }
     }
+    console.log(array)
     return array;
 }
 
-function newData(data, id) {
-    var array = [];
-    var count = 0;
-    for (var i = 0; i < 10; i++) {
-        for (var j = 0; j < 10; j++) {
-            var newData = data.filter((d) => {return d.imprace == i && d.shar_o == j})
-            var object = {
-                id: count,
-                x: j,
-                y: i,
-                amount: newData.length
-            }
-            count++;
-            if (object.id == id) {
-                array.push(object)
-            }
-        }
-    }
-    return array;
-}
 
 function bubbleSize(value) {
     if (value == 8) {
@@ -381,6 +379,16 @@ function bubbleSize(value) {
         //for every 100 people, size increases 0.8
         return (value-8)*0.8/100+4
     }
+}
+
+function checkBubbles(d, array){
+    var flag = false;
+    array.forEach(element => {
+        if (element.x == d.shar_o && element.y == d.imprace) {
+            flag = true;
+        }
+    });
+    return flag;
 }
 
 function createBubbleChart(id) {
@@ -415,7 +423,7 @@ function createBubbleChart(id) {
     
         const y = d3
             .scaleLinear()
-            .domain([-1, 10])
+            .domain([0, 10])
             .range([height, 0]);
         svg
             .append("g")
@@ -425,7 +433,6 @@ function createBubbleChart(id) {
             .selectAll("circle.circleValues") 
             .data(array, (d) => d.id) 
             .join("circle")
-            .on("click", (event, d) => buttonClick(d))
             .attr("class", "circleValues itemValue")
             .attr("cx", (d) => x(d.x))
             .attr("cy", (d) => y(d.y))
@@ -435,6 +442,57 @@ function createBubbleChart(id) {
             .attr("opacity", 0.9)
             .on("mouseover", (event, d) => handleMouseOver(d))
             .on("mouseleave", (event, d) => handleMouseLeave())
+            .on("click", (event, d) => {
+                //combination we're analyzing
+                var combination = { x: d.x, y: d.y };
+                if(currentSelectedBubbles.includes(d.id)) { //if bubble already selected
+                    //remove it from array of bubbles selected
+                    const index = currentSelectedBubbles.indexOf(d.id);
+                    if (index > -1) {
+                        currentSelectedBubbles.splice(index, 1);
+                    }
+                    //remove it from array of combinations selected
+                    const index2 = bubbleCombinations.findIndex(elem => elem.x == combination.x && elem.y == combination.y);
+                    if (index2 > -1) {
+                        bubbleCombinations.splice(index2, 1);
+                    }
+
+                    //if no bubbles selected
+                    if(currentSelectedBubbles.length == 0) { 
+                        //reset to default
+                        d3.selectAll(".itemValue").attr("opacity", 0.9);
+                    } else {
+                        //bubbles that aren't selected stay 0.2 opacity
+                        d3.selectAll(".itemValue").attr("opacity", 0.2);
+                        
+                        //bubbles that are still selected stay 0.9 opacity
+                        d3.selectAll(".itemValue")
+                          .filter(function(d){
+                            return currentSelectedBubbles.includes(d.id);
+                          })
+                          .attr("opacity", 0.9);
+                    }
+
+                } else { //selecting bubble for first time
+                    //add to array of selected bubbles
+                    currentSelectedBubbles.push(d.id);
+                    //add to array of selected combinations
+                    bubbleCombinations.push(combination);
+
+                    //bubbles that aren't selected stay 0.2 opacity
+                    d3.selectAll(".itemValue").attr("opacity", 0.2);
+
+                    //bubbles that are selected stay 0.9 opacity
+                    d3.selectAll(".itemValue")
+                        .filter(function(d){
+                            return currentSelectedBubbles.includes(d.id);
+                        })
+                        .attr("opacity", 0.9);
+                }
+                //buttonClick(d.id, d.amount)
+                updateGoalBarChart(currentGender, bubbleCombinations);
+            })
+
         svg
             .append("text")
             .attr("class", "y label")
@@ -448,60 +506,35 @@ function createBubbleChart(id) {
         
 }
 
-function updateBubbleChart(gender, goals, shar_o, imprace, amount) {
-    console.log("Gender: " + gender + " Goals: " + goals.length + "Imprace: " + imprace.length + "Shar_o:" + shar_o.length)
+function updateBubbleChart(gender, goals) {
+    console.log("Gender: " + gender + " Goals: " + goals.length)
     d3.json("data.json").then(function (data) {
         //gender is specified
         if(gender != -1){
             //goals are specified
             if(goals.length != 0){
                 data = data.filter(function(elem){
-                    if (imprace.length != 0 && shar_o.length != 0) {
-                        return elem.gender == gender && goals.includes(elem.goal) && elem.imprace == imprace  && elem.shar_o == shar_o;
-                    } else {
-                        return elem.gender == gender && goals.includes(elem.goal);
-
-                    }
+                    return elem.gender == gender && goals.includes(elem.goal);
                 })
             } else { //goals are not specified
                 data = data.filter(function(elem){
-                    if (imprace.length != 0 && shar_o.length != 0) {
-                        return elem.gender == gender && elem.imprace == imprace  && elem.shar_o == shar_o;
-                    } else {
-                        return elem.gender == gender;
-
-                    }            
+                    return elem.gender == gender;
                 })
             }
         } else { //gender is not specified
             //goals are specified
             if(goals.length != 0){
                 data = data.filter(function(elem){
-                    if (imprace.length != 0 && shar_o.length != 0) {
-                        return goals.includes(elem.goal) && elem.imprace == imprace  && elem.shar_o == shar_o;
-                    } else {
-                        return goals.includes(elem.goal);
-                    }
+                    return goals.includes(elem.goal);
                 })
             } else { //goals and gender are not specified
-                console.log("here!")
-                if (imprace.length != 0 && shar_o.length != 0) {
-                    data = data.filter(function(elem){
-                        return  elem.imprace == imprace  && elem.shar_o == shar_o;
-                    })
-                } else {
-                    data = data;
-                    console.log("yeye")
-                }
-                
+                data = data
             }
         }
-
         const svg = d3.select("#gBubbleChart");
 
         var array = sameValuesData(data);
-        console.log("le data",array)
-
+        //console.log(array)
 
         const x = d3
             .scaleLinear()
@@ -512,7 +545,7 @@ function updateBubbleChart(gender, goals, shar_o, imprace, amount) {
 
         const y = d3
             .scaleLinear()
-            .domain([-1, 10])
+            .domain([0, 10])
             .range([height, 0]);
 
         svg.select("#gYAxis").call(d3.axisLeft(y).tickFormat(d => d!=-1 ? d : null));
@@ -527,9 +560,7 @@ function updateBubbleChart(gender, goals, shar_o, imprace, amount) {
                     .attr("class", "circleValues itemValue")
                     .attr("cx", (d) => x(d.x))
                     .attr("cy", (d) => y(d.y))
-                    .on("click", (event, d) => buttonClick(d))
-                    .attr("r", function(d) { if (amount != -1) {
-                        return bubbleSize(amount) } else { return bubbleSize(d.amount)};})
+                    .attr("r", 0)
                     .attr("fill", "#4dde12")
                     .attr("opacity", 0.8)
                     .on("mouseover", (event, d) => handleMouseOver(d))
@@ -546,13 +577,14 @@ function updateBubbleChart(gender, goals, shar_o, imprace, amount) {
                 .duration(1000)
                 .attr("cx", (d) => x(d.x))
                 .attr("cy", (d) => y(d.y))
-                .attr("r", function(d) { if (amount != -1) {
-                    return bubbleSize(amount) } else { return bubbleSize(d.amount)};})
+                .attr("r", (d) => bubbleSize(d.amount));
             },
             (exit) => {
                 exit.remove();
             }
         );
+
+        updateBubbleOpacity()
     });
 }
 
@@ -574,87 +606,20 @@ function handleMouseLeave() {
     d3.selectAll(".itemValue").style("fill", "#4dde12");
 }
 
-
-function buttonClick(item) {
-    d3.selectAll(".itemValue")
-    .filter(function (d, i) {
-        return d.amount == item.amount && item.id == d.id;
-      })
-    .attr("r", bubbleSize(item.amount))
-    
-    updateBubbleChart(-1, "", item.x, item.y,item.amount)
-    updateGoalBarChart(-1, item.x, item.y);
+function updateBubbleOpacity(){
+    if(currentSelectedBubbles.length != 0) {
+        d3.selectAll(".itemValue")
+          .filter(function(d){
+            return !currentSelectedBubbles.includes(d.id);
+          })
+          .attr("opacity", 0.2);
+    } else {
+        d3.selectAll(".itemValue").attr("opacity", 0.8);
+    }
 }
 
-
-function newGoalData(data, shar_o, imprace) {
-    //console.log("imprace", imprace)
-    //console.log("shar_o", shar_o)
-    var goal1 = 0;
-    var goal2 = 0;
-    var goal3 = 0;
-    var goal4 = 0;
-    var goal5 = 0;
-    var goal6 = 0;
-
-    data.forEach(element => {
-        if (element.imprace == imprace && element.shar_o == shar_o) {
-            switch (element.goal) {
-                case 1:
-                    goal1 += 1;
-                    break;
-                case 2:
-                    goal2 += 1;
-                    break;
-                case 3:
-                    goal3 += 1;
-                    break;
-                case 4:
-                    goal4 += 1;
-                    break;
-                case 5:
-                    goal5 += 1;
-                    break;
-                case 6:
-                    goal6 += 1;
-                    break;
-                default:
-                    break;
-            }
-        }
-    });
-    var total = goal1 + goal2 + goal3 + goal4 + goal5 + goal6;
-    var percentageData = [
-        {
-            id: 1,
-            goal: "Fun night out", 
-            percentage: goal1/total*100
-        },
-        {
-            id: 2,
-            goal: "Meet new people",
-            percentage: goal2/total*100
-        },
-        {
-            id: 3,
-            goal: "Get a date",
-            percentage: goal3/total*100
-        },
-        {
-            id: 4,
-            goal: "Serious relationship",
-            percentage: goal4/total*100
-        },
-        {
-            id: 5,
-            goal: "To say I did it",
-            percentage: goal5/total*100
-        },
-        {
-            id: 6,
-            goal: "Other",
-            percentage: goal6/total*100
-        }
-    ];
-    return percentageData;
+function buttonClick(id, amount) {
+    //clicked = 1;
+    //updateBubbleChartPopulation(id, amount);
+    //updateGoalBarChartPopulation(id, amount);
 }
