@@ -218,7 +218,7 @@ function updateGoalBarChart(gender, combinations){
             .padding(0.1);
 
         svg.select("#gYAxis").call(d3.axisLeft(y).tickSizeOuter(0));
-
+        
         svg
             .selectAll("rect.rectValue")
             .data(percentageData, (d) => d.id)
@@ -238,7 +238,6 @@ function updateGoalBarChart(gender, combinations){
                     .transition()
                     .duration(1500)
                     .attr("width", (d) => x(d.percentage))
-                rects.append("title").text((d) => d.percentage + "%");
                 },
                 (update) => { 
                   update
@@ -442,56 +441,7 @@ function createBubbleChart(id) {
             .attr("opacity", 0.9)
             .on("mouseover", (event, d) => handleMouseOver(d))
             .on("mouseleave", (event, d) => handleMouseLeave())
-            .on("click", (event, d) => {
-                //combination we're analyzing
-                var combination = { x: d.x, y: d.y };
-                if(currentSelectedBubbles.includes(d.id)) { //if bubble already selected
-                    //remove it from array of bubbles selected
-                    const index = currentSelectedBubbles.indexOf(d.id);
-                    if (index > -1) {
-                        currentSelectedBubbles.splice(index, 1);
-                    }
-                    //remove it from array of combinations selected
-                    const index2 = bubbleCombinations.findIndex(elem => elem.x == combination.x && elem.y == combination.y);
-                    if (index2 > -1) {
-                        bubbleCombinations.splice(index2, 1);
-                    }
-
-                    //if no bubbles selected
-                    if(currentSelectedBubbles.length == 0) { 
-                        //reset to default
-                        d3.selectAll(".itemValue").attr("opacity", 0.9);
-                    } else {
-                        //bubbles that aren't selected stay 0.2 opacity
-                        d3.selectAll(".itemValue").attr("opacity", 0.2);
-                        
-                        //bubbles that are still selected stay 0.9 opacity
-                        d3.selectAll(".itemValue")
-                          .filter(function(d){
-                            return currentSelectedBubbles.includes(d.id);
-                          })
-                          .attr("opacity", 0.9);
-                    }
-
-                } else { //selecting bubble for first time
-                    //add to array of selected bubbles
-                    currentSelectedBubbles.push(d.id);
-                    //add to array of selected combinations
-                    bubbleCombinations.push(combination);
-
-                    //bubbles that aren't selected stay 0.2 opacity
-                    d3.selectAll(".itemValue").attr("opacity", 0.2);
-
-                    //bubbles that are selected stay 0.9 opacity
-                    d3.selectAll(".itemValue")
-                        .filter(function(d){
-                            return currentSelectedBubbles.includes(d.id);
-                        })
-                        .attr("opacity", 0.9);
-                }
-                //buttonClick(d.id, d.amount)
-                updateGoalBarChart(currentGender, bubbleCombinations);
-            })
+            .on("click", (event, d) => onClickBubbles(event, d));          
 
         svg
             .append("text")
@@ -504,6 +454,57 @@ function createBubbleChart(id) {
             .text("Importance of Partner's Race");
         });
         
+}
+
+function onClickBubbles(event, d){
+    //combination we're analyzing
+    var combination = { x: d.x, y: d.y };
+    if(currentSelectedBubbles.includes(d.id)) { //if bubble already selected
+        //remove it from array of bubbles selected
+        const index = currentSelectedBubbles.indexOf(d.id);
+        if (index > -1) {
+            currentSelectedBubbles.splice(index, 1);
+        }
+        //remove it from array of combinations selected
+        const index2 = bubbleCombinations.findIndex(elem => elem.x == combination.x && elem.y == combination.y);
+        if (index2 > -1) {
+            bubbleCombinations.splice(index2, 1);
+        }
+
+        //if no bubbles selected
+        if(currentSelectedBubbles.length == 0) { 
+            //reset to default
+            d3.selectAll(".itemValue").attr("opacity", 0.9);
+        } else {
+            //bubbles that aren't selected stay 0.2 opacity
+            d3.selectAll(".itemValue").attr("opacity", 0.2);
+            
+            //bubbles that are still selected stay 0.9 opacity
+            d3.selectAll(".itemValue")
+              .filter(function(d){
+                return currentSelectedBubbles.includes(d.id);
+              })
+              .attr("opacity", 0.9);
+        }
+
+    } else { //selecting bubble for first time
+        //add to array of selected bubbles
+        currentSelectedBubbles.push(d.id);
+        //add to array of selected combinations
+        bubbleCombinations.push(combination);
+
+        //bubbles that aren't selected stay 0.2 opacity
+        d3.selectAll(".itemValue").attr("opacity", 0.2);
+
+        //bubbles that are selected stay 0.9 opacity
+        d3.selectAll(".itemValue")
+            .filter(function(d){
+                return currentSelectedBubbles.includes(d.id);
+            })
+            .attr("opacity", 0.9);
+    }
+    //buttonClick(d.id, d.amount)
+    updateGoalBarChart(currentGender, bubbleCombinations);
 }
 
 function updateBubbleChart(gender, goals) {
@@ -536,6 +537,8 @@ function updateBubbleChart(gender, goals) {
         var array = sameValuesData(data);
         //console.log(array)
 
+        console.log(currentSelectedBubbles)
+
         const x = d3
             .scaleLinear()
             .domain([10, 0])
@@ -564,7 +567,8 @@ function updateBubbleChart(gender, goals) {
                     .attr("fill", "#4dde12")
                     .attr("opacity", 0.8)
                     .on("mouseover", (event, d) => handleMouseOver(d))
-                    .on("mouseleave", (event, d) => handleMouseLeave());                    
+                    .on("mouseleave", (event, d) => handleMouseLeave())
+                    .on("click", (event, d) => onClickBubbles(event, d));          
                 circles
                     .transition()
                     .duration(1000)
