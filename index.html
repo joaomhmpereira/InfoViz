@@ -12,15 +12,21 @@
 </head>
 <body onload="init()">
     <div>
-        <div class="myButtons" style="width: 33%; float: left; text-align: center;">
-            <button class="btn" id="male">Male</button>
-            <button class="btn" id="female">Female</button>
-            <button class="btn" id="all">All</button>
-          </div>
+        
         <div class="charts">
-            <div><svg id="chart1"></svg></div>
-            <div><svg id="chart2"></svg></div>
+            <div class="myButtons" style="float: left; text-align: center;">
+                <p>Participant's Gender</p>
+                <button class="btn" id="male">Male</button>
+                <button class="btn" id="female">Female</button>
+                <button class="btn" id="all">All</button>
+            </div>
+            <div class="chart" id="chart1"><img id="parallelCoordsImg" src="images/parallel_coords.jpg" alt=""></div>
+            <div class="chart" id="chart2"><svg id="chart2svg"></svg></div>
+            <div class="chart" id="chart3"><img id="slopegraphImg" src="images/slopegraph.jpg" alt=""></div>
+            <div class="chart" id="chart4"><svg id="chart4svg"></svg></div>
+            <div class="chart" id="chart5"><img id="scatterplotImg" src="images/scatterplot.jpg" alt=""></div>
         </div>
+        
     </div>
 </body>
 </html>
