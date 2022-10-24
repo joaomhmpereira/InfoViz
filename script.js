@@ -15,20 +15,20 @@ function init(){
     d3.select("#male").on("click", () => {
         //updateParallelCoordinates(0);
         currentGender = 0;
-        updateGoalBarChart(currentGender, bubbleCombinations);
         updateBubbleChart(currentGender, currentSelectedBars);
+        updateGoalBarChart(currentGender, bubbleCombinations);
     })
     d3.select("#female").on("click", () => {
         //updateParallelCoordinates(1);
         currentGender = 1;
-        updateGoalBarChart(currentGender, bubbleCombinations);
         updateBubbleChart(currentGender, currentSelectedBars);
+        updateGoalBarChart(currentGender, bubbleCombinations);
     })
     d3.select("#all").on("click", () => {
         //updateParallelCoordinates(-1);
         currentGender = -1;
-        updateGoalBarChart(currentGender, bubbleCombinations);
         updateBubbleChart(currentGender, currentSelectedBars);
+        updateGoalBarChart(currentGender, bubbleCombinations);
     })
 }
 
@@ -574,8 +574,28 @@ function updateBubbleChart(gender, goals) {
 
         var array = sameValuesData(data);
         //console.log(array)
+        var allBubbles = array.map((d) => d.id);
 
-        console.log(currentSelectedBubbles)
+        //if selected bubble is not in the new data, remove it from the array of selected bubbles
+        currentSelectedBubbles.forEach(element => {
+            if(!allBubbles.includes(element)){
+                const index = currentSelectedBubbles.indexOf(element);
+                if (index > -1) {
+                    currentSelectedBubbles.splice(index, 1);
+                }
+
+                //remove it from array of combinations selected
+                bubbleCombinations.forEach(elem => {
+                    const index2 = currentSelectedBubbles.findIndex(elem2 => elem.x == elem2.x && elem.y == elem2.y);
+                    if (index2 <= -1) {
+                        console.log("Combination not found in new data")
+                        bubbleCombinations.splice(index2, 1);
+                    }
+                })
+            }
+        });
+
+        //console.log(currentSelectedBubbles)
 
         const x = d3
             .scaleLinear()
