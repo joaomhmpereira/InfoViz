@@ -139,6 +139,8 @@ function createGoalBarChart(id){
                 Tooltip.transition()
                     .duration(200)
                     .style("opacity", 0);
+                d3.select(this)
+                    .attr("stroke", "none")
             })
             .on("click", (event, d) => {
                 //console.log("clicked bar")
@@ -258,8 +260,6 @@ function updateGoalBarChart(gender, combinations){
                     .attr("width", (d) => x(0))
                     .attr("height", y.bandwidth())
                     .attr("fill", barChartColor)
-                    .on("mouseover", (event, d) => handleMouseOverBarChart(d))
-                    .on("mouseleave", (event, d) => handleMouseLeaveBarChart())
                 rects
                     .transition()
                     .duration(1500)
@@ -350,22 +350,6 @@ function updateGoalData(data){
     return percentageData;
 }
 
-function handleMouseOverBarChart(d){
-    d3.selectAll(".barItemValue")
-      .filter(function(elem) {
-        return d.id == elem.id;
-      })
-      .attr("title", "update")
-      .append("title")
-      .text(function(d) {return d.goal + ": " + (d.percentage).toFixed(2) + "%"})
-}
-
-function handleMouseLeaveBarChart(){
-    d3.selectAll(".barItemValue")
-      .attr("fill", barChartColor);
-}
-
-
 /**
  * ===================================================================================
  * -------------------------------------BUBBLE CHART-------------------------------------
@@ -454,6 +438,17 @@ function createBubbleChart(id) {
             .append("g")
             .attr("id", "gYAxis")
             .call(d3.axisLeft(y).tickFormat(d => d!=-1 ? d : null));
+            
+        var Tooltip = d3.select("body")
+            .append("div")
+            .style("opacity", 0)
+            .attr("class", "tooltip")
+            .style("background-color", "white")
+            .style("border", "solid")
+            .style("border-width", "1px")
+            .style("border-radius", "5px")
+            .style("height", "45px")
+            .style("width", "170px")
         svg
             .selectAll("circle.circleValues") 
             .data(array, (d) => d.id) 
@@ -465,8 +460,25 @@ function createBubbleChart(id) {
             .attr("r", (d) => bubbleSize(d.amount))
             .attr("fill", "#4dde12")
             .attr("opacity", 0.9)
-            .on("mouseover", (event, d) => handleMouseOver(d))
-            .on("mouseleave", (event, d) => handleMouseLeave())
+            .on("mouseover", function(event,d) {
+                Tooltip.transition()
+                  .duration(200)
+                  .style("opacity", 1)
+                d3.select(this)
+                  .style("fill", "#3b7a57")                
+            })
+            .on("mousemove", function(event,d) {
+                Tooltip.html("Nr of participants: " + d.amount + "<br>" +  "Shar_o: " + d.x + "<br>" + "Imprace: " + d.y)
+                  .style("left", (event.pageX + 20) + "px")
+                  .style("top", (event.pageY - 28) + "px")
+            })
+            .on("mouseout", function(d) {
+                Tooltip.transition()
+                    .duration(200)
+                    .style("opacity", 0);
+                d3.select(this)
+                    .style("fill", "#4dde12")   
+            })
             .on("click", (event, d) => onClickBubbles(event, d));          
 
         svg
@@ -592,8 +604,6 @@ function updateBubbleChart(gender, goals) {
                     .attr("r", 0)
                     .attr("fill", "#4dde12")
                     .attr("opacity", 0.8)
-                    .on("mouseover", (event, d) => handleMouseOver(d))
-                    .on("mouseleave", (event, d) => handleMouseLeave())
                     .on("click", (event, d) => onClickBubbles(event, d));          
                 circles
                     .transition()
@@ -618,24 +628,6 @@ function updateBubbleChart(gender, goals) {
     });
 }
 
-
-function handleMouseOver(item) {
-    d3.selectAll(".itemValue")
-      .filter(function (d, i) {
-        return d.amount == item.amount && item.id == d.id;
-      })
-      
-      .attr("r", bubbleSize(item.amount))
-      .style("fill", "#3b7a57")
-      .attr("title", "update")
-      .append("title").text(function(d) { return item.amount; });
-      //console.log("item-amount: " + item.amount)
-  }
-  
-function handleMouseLeave() {
-    d3.selectAll(".itemValue").style("fill", "#4dde12");
-}
-
 function updateBubbleOpacity(){
     if(currentSelectedBubbles.length != 0) {
         d3.selectAll(".itemValue")
@@ -646,10 +638,4 @@ function updateBubbleOpacity(){
     } else {
         d3.selectAll(".itemValue").attr("opacity", 0.8);
     }
-}
-
-function buttonClick(id, amount) {
-    //clicked = 1;
-    //updateBubbleChartPopulation(id, amount);
-    //updateGoalBarChartPopulation(id, amount);
 }
