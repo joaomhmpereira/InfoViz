@@ -9,6 +9,30 @@
 	border: 1px solid #000; 
 }
 
+#parallelCoordsImg {
+	position: absolute;
+	top: 0;
+	left: 7vw;
+	width: 80%;
+	height: 100%;
+}
+
+#slopegraphImg {
+	position: absolute;
+	top: 0;
+	left: 5vw;
+	width: 70%;
+	height: 100%;
+}
+
+#scatterplotImg {
+	position: absolute;
+	top: 0;
+	left: 5vw;
+	width: 70%;
+	height: 100%;
+}
+
 #chart1 {
 	/*border: 0px none;*/
 	position: absolute;
