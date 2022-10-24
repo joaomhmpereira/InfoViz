@@ -10,6 +10,7 @@ var currentGender = -1;
 function init(){
     //createParallelCoordinates("#chart1");
     createBubbleChart("#chart2svg");
+    
     createGoalBarChart("#chart4svg");
     d3.select("#male").on("click", () => {
         //updateParallelCoordinates(0);
@@ -102,6 +103,16 @@ function createGoalBarChart(id){
             .attr("id", "gYAxis")
             .call(d3.axisLeft(y).tickSizeOuter(0));
 
+        var Tooltip = d3.select("body")
+            .append("div")
+            .style("opacity", 0)
+            .attr("class", "tooltip")
+            .style("background-color", "white")
+            .style("border", "solid")
+            .style("border-width", "1px")
+            .style("border-radius", "5px")
+            .style("padding", "5px")
+
         svg
             .selectAll("rect.rectValue")
             .data(percentageData, (d) => d.id)
@@ -112,8 +123,23 @@ function createGoalBarChart(id){
             .attr("width", (d) => x(d.percentage))
             .attr("height", y.bandwidth())
             .attr("fill", barChartColor)
-            .on("mouseover", (event, d) => handleMouseOverBarChart(d))
-            .on("mouseleave", (event, d) => handleMouseLeaveBarChart())
+            .on("mouseover", function(event,d) {
+                Tooltip.transition()
+                  .duration(200)
+                  .style("opacity", .9);
+                Tooltip.html(d.goal + "<br/>" + (d.percentage).toFixed(2) + "%")
+                  .style("left", (event.pageX + 20) + "px")
+                  .style("top", (event.pageY - 28) + "px");
+            })
+            .on("mousemove", function(event,d) {
+                Tooltip.style("left", (event.pageX + 20) + "px")
+                    .style("top", (event.pageY - 28) + "px");
+            })
+            .on("mouseout", function(d) {
+                Tooltip.transition()
+                    .duration(200)
+                    .style("opacity", 0);
+            })
             .on("click", (event, d) => {
                 //console.log("clicked bar")
                 var id = d.id
