@@ -195,7 +195,7 @@ function createGoalBarChart(id){
         svg
            .append("text")
            .attr("class", "x label")
-           .attr("text-anchor", "end")
+           .attr("text-anchor", "middle")
            .attr("x", width - 140)
            .attr("y", height + 35)
            .text("Percentage of participants");
@@ -425,8 +425,8 @@ function createBubbleChart(id) {
         svg
             .append("text")
             .attr("class", "x label")
-            .attr("text-anchor", "end")
-            .attr("x", width - 95)
+            .attr("text-anchor", "middle")
+            .attr("x", width - 120)
             .attr("y", height + 35)
             .text("Importance of Shared Interests");
     
