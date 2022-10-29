@@ -1,35 +1,352 @@
 const margin = { top: 20, right: 30, bottom: 40, left: 100 };
-const width = document.documentElement.clientWidth/3.8 - margin.left - margin.right;
-const height = document.documentElement.clientHeight/2.6 - margin.top - margin.bottom;
+const widthSmaller = document.documentElement.clientWidth/3.8 - margin.left - margin.right;
+const heightSmaller = document.documentElement.clientHeight/2.6 - margin.top - margin.bottom;
+const widthBigger = document.documentElement.clientWidth/1.8 - margin.left - margin.right;
+const heightBigger = document.documentElement.clientHeight/2 - margin.top - margin.bottom;
 
 var currentSelectedBars = [];
 var currentSelectedBubbles = [];
 var bubbleCombinations = [];
+var parallelCoordsSliders = [];
 var currentGender = -1;
 
 function init(){
-    //createParallelCoordinates("#chart1");
+    createParallelCoordinates("#chart1svg")
     createBubbleChart("#chart2svg");
-    
     createGoalBarChart("#chart4svg");
     d3.select("#male").on("click", () => {
-        //updateParallelCoordinates(0);
         currentGender = 0;
+        //updateParallelCoordinates(currentGender);
         updateBubbleChart(currentGender, currentSelectedBars);
         updateGoalBarChart(currentGender, bubbleCombinations);
     })
     d3.select("#female").on("click", () => {
-        //updateParallelCoordinates(1);
         currentGender = 1;
+        //updateParallelCoordinates(currentGender);
         updateBubbleChart(currentGender, currentSelectedBars);
         updateGoalBarChart(currentGender, bubbleCombinations);
     })
     d3.select("#all").on("click", () => {
-        //updateParallelCoordinates(-1);
         currentGender = -1;
+        //updateParallelCoordinates(currentGender);
         updateBubbleChart(currentGender, currentSelectedBars);
         updateGoalBarChart(currentGender, bubbleCombinations);
     })
+}
+
+/**
+ * ===================================================================================
+ * -------------------------------------PARALLEL--------------------------------------
+ * ===================================================================================
+ */
+
+function lineColor(d){
+    if(d.gender == 0){
+        return "#74c7fd";
+
+    } else {
+        return "#fb74fd";
+    }
+}
+
+
+
+function createParallelCoordinates(id){
+    const svg = d3
+        .select(id)
+        .attr("width", widthBigger + margin.left + margin.right + 100)
+        .attr("height", heightBigger + margin.top + margin.bottom)
+        .append("g")
+        .attr("id", "gParallel")
+        .attr("transform", `translate(${margin.left}, ${margin.top})`);
+
+    d3.json("data.json").then(function (data) {
+        var dimensions = Object.keys(data[0]).filter(function(d) { return d == "attr_o" || d == "sinc_o" || d == "intel_o" || d == "amb_o" || d == "fun_o" || d == "shar_o" });
+        
+
+        // For each dimension, I build a linear scale. I store all in a y object
+        const y = {}
+        for (i in dimensions) {
+          name = dimensions[i]
+          y[name] = d3.scaleLinear()
+            .domain( [1, 10] )
+            .range([heightBigger, 0])
+        }
+
+        // Build the X scale -> it find the best position for each Y axis
+        x = d3.scalePoint()
+          .range([0, widthBigger-margin.left-margin.right])
+          .padding(0)
+          .domain(dimensions);
+
+        // The path function take a row of the csv as input, and return x and y coordinates of the line to draw for this raw.
+        function path(d) {
+            return d3.line()(dimensions.map(function(p) { return [x(p), y[p](d[p])]; }));
+        }
+        
+
+        // Draw the lines
+        svg
+          .selectAll("myPath")
+          .data(data, (d) => d.id)
+          .join("path")
+          .attr("d",  path)
+          .attr("fill", "none")
+          .attr("stroke", lineColor)
+          .attr("stroke-opacity", 0.5)
+          .attr("stroke-width", 1.2)
+          .on("mouseover", function(d) {
+            d3.select(this)
+              .transition()
+              .duration(200)
+              .attr("stroke-width", 6)
+              .attr("stroke-opacity", 1)
+              .attr("stroke", "red")
+          })
+          .on("mouseleave", function(d) {
+            d3.select(this)
+              .transition()
+              .duration(100)
+              .attr("stroke-width", 1.2)
+              .attr("stroke-opacity", 0.5)
+              .attr("stroke", lineColor)
+          })
+        
+        svg.append("text").attr("x", widthBigger).attr("y", 20).text("Importance of").style("font-size", "20px").attr("alignment-baseline","middle")
+        svg.append("text").attr("x", widthBigger).attr("y", 40).text(".. in a partner").style("font-size", "20px").attr("alignment-baseline","middle")
+
+          
+    
+        //Legend
+        svg.append("circle").attr("cx",widthBigger - 50).attr("cy",130).attr("r", 6).style("fill", "#74c7fd")
+        svg.append("circle").attr("cx",widthBigger - 50).attr("cy",160).attr("r", 6).style("fill", "#fb74fd")
+        svg.append("text").attr("x", widthBigger - 30).attr("y", 135).text("Male participant").style("font-size", "15px").attr("alignment-baseline","middle")
+        svg.append("text").attr("x", widthBigger - 30).attr("y", 165).text("Female participant").style("font-size", "15px").attr("alignment-baseline","middle")
+
+        // Draw the axis:
+        //svg.selectAll("myAxis")
+        //  // For each dimension of the dataset I add a 'g' element:
+        //  .data(dimensions).enter()
+        //  .append("g")
+        //  // I translate this element to its right position on the x axis
+        //  .attr("transform", function(d) { return "translate(" + x(d) + ")"; })
+        //  // And I build the axis with the call function
+        //  .each(function(d) { d3.select(this).call(d3.axisLeft().scale(y[d])); })
+        //  // Add axis title
+        //  .append("text")
+        //    .style("text-anchor", "middle")
+        //    .attr("y", -9)
+        //    .text(function(d) { return d; })
+        //    .style("fill", "black")
+
+        console.log(parallelCoordsSliders)
+        var sliderAttr = d3
+            .sliderLeft()
+            .min(1)
+            .max(10)
+            .width(200)
+            .height(heightBigger)
+            .ticks(10)
+            .tickValues([1,2,3,4,5,6,7,8,9,10])
+            .step(1)
+            .default([1, 10])
+            .fill('#1a4b8e')
+
+        var sliderSinc = d3
+            .sliderLeft()
+            .min(1)
+            .max(10)
+            .width(200)
+            .height(heightBigger)
+            .ticks(10)
+            .tickValues([1,2,3,4,5,6,7,8,9,10])
+            .step(1)
+            .default([1, 10])
+            .fill('#1a4b8e')
+
+        var sliderIntel = d3
+            .sliderLeft()
+            .min(1)
+            .max(10)
+            .width(200)
+            .height(heightBigger)
+            .ticks(10)
+            .tickValues([1,2,3,4,5,6,7,8,9,10])
+            .step(1)
+            .default([1, 10])
+            .fill('#1a4b8e')
+        
+        var sliderFun = d3
+            .sliderRight()
+            .min(1)
+            .max(10)
+            .width(200)
+            .height(heightBigger)
+            .ticks(10)
+            .tickValues([1,2,3,4,5,6,7,8,9,10])
+            .step(1)
+            .default([1, 10])
+            .fill('#1a4b8e')
+
+        var sliderAmb = d3
+            .sliderRight()
+            .min(1)
+            .max(10)
+            .width(200)
+            .height(heightBigger)
+            .ticks(10)
+            .tickValues([1,2,3,4,5,6,7,8,9,10])
+            .step(1)
+            .default([1, 10])
+            .fill('#1a4b8e')
+        
+        var sliderShar = d3
+            .sliderRight()
+            .min(1)
+            .max(10)
+            .width(200)
+            .height(heightBigger)
+            .ticks(10)
+            .tickValues([1,2,3,4,5,6,7,8,9,10])
+            .step(1)
+            .default([1, 10])
+            .fill('#1a4b8e')
+        
+        var x_pos = x("attr_o") + 100 ;
+        var gRange = d3
+          .select(id)
+          .append('svg')
+          .attr('width', 200)
+          .attr('height', 450)
+          .append('g')
+          .attr('transform', 'translate('+ x_pos.toString() +',15)');
+        
+        x_pos = x("sinc_o") + 100 ;
+        var gSinc = d3
+            .select(id)
+            .append('svg')
+            .attr('width', 400)
+            .attr('height', 450)
+            .append('g')
+            .attr('transform', 'translate(' + x_pos.toString() + ',15)')
+
+        x_pos = x("intel_o") + 100 ;
+        var gIntel = d3
+            .select(id)
+            .append('svg')
+            .attr('width', 600)
+            .attr('height', 450)
+            .append('g')
+            .attr('transform', 'translate(' + x_pos.toString() + ',15)')
+
+        x_pos = x("fun_o") + 100 ;
+        var gFun = d3
+            .select(id)
+            .append('svg')
+            .attr('width', 800)
+            .attr('height', 450)
+            .append('g')
+            .attr('transform', 'translate(' + x_pos.toString() + ',15)')
+        
+        x_pos = x("amb_o") + 100 ;
+        var gAmb = d3
+            .select(id)
+            .append('svg')
+            .attr('width', 1000)
+            .attr('height', 450)
+            .append('g')
+            .attr('transform', 'translate(' + x_pos.toString() + ',15)')
+        
+        x_pos = x("shar_o") + 100 ;
+        var gShar = d3
+            .select(id)
+            .append('svg')
+            .attr('width', 1200)
+            .attr('height', 450)
+            .append('g')
+            .attr('transform', 'translate(' + x_pos.toString() + ',15)')
+
+
+        gRange.call(sliderAttr);
+        gSinc.call(sliderSinc);
+        gIntel.call(sliderIntel);
+        gFun.call(sliderFun);
+        gAmb.call(sliderAmb);
+        gShar.call(sliderShar);
+            
+    });
+}
+
+function updateParallelCoordinates(gender){
+    console.log("Gender: " + gender)
+    d3.json("data.json").then(function (data) {
+        //if gender is specified
+        if(gender != -1){
+              //share_o and imprace are not specified
+            data = data.filter(function(elem){
+                return elem.gender == gender;
+            })
+        } else { //gender is not specified
+            data = data
+        }
+
+        const svg = d3.select("#gParallel");
+
+        var dimensions = Object.keys(data[0]).filter(function(d) { return d == "attr_o" || d == "sinc_o" || d == "intel_o" || d == "amb_o" || d == "fun_o" || d == "shar_o" });
+        
+        // The path function take a row of the csv as input, and return x and y coordinates of the line to draw for this raw.
+        function path(d) {
+            return d3.line()(dimensions.map(function(p) { return [x(p), y[p](d[p])]; }));
+        }
+
+        // For each dimension, I build a linear scale. I store all in a y object
+        const y = {}
+        for (i in dimensions) {
+          name = dimensions[i]
+          y[name] = d3.scaleLinear()
+            .domain( [1, 10] )
+            .range([heightBigger, 0])
+        }
+
+        // Build the X scale -> it find the best position for each Y axis
+        x = d3.scalePoint()
+          .range([0, widthBigger])
+          .padding(0)
+          .domain(dimensions);
+
+        
+        svg
+            .selectAll("myPath")
+            .data(data, (d) => d.id)
+            .join(
+                (enter) => {
+                    console.log("enter")
+                    lines = enter
+                        .append("path")
+                        .attr("class", "myPath")
+                        .attr("d",  x(0))
+                        .attr("fill", "none")
+                        .attr("stroke", lineColor)
+                        .attr("stroke-opacity", 0.5)
+                        .attr("stroke-width", 1.2)
+                    lines
+                        .transition()
+                        .duration(1000)
+                        .attr("d",  path)
+                }, 
+                (update) => {
+                    console.log("update")
+                    update
+                        .transition()
+                        .duration(1000)
+                        .attr("d",  path)
+                },
+                (exit) => {
+                    console.log("exit")
+                    exit.remove();
+                }
+            )
+    });
 }
 
 /**
@@ -67,8 +384,8 @@ function barChartColor(d){
 function createGoalBarChart(id){
     const svg = d3
         .select(id)
-        .attr("width", width + margin.left + margin.right)
-        .attr("height", height + margin.top + margin.bottom)
+        .attr("width", widthSmaller + margin.left + margin.right)
+        .attr("height", heightSmaller + margin.top + margin.bottom)
         .append("g")
         .attr("id", "gGoal")
         .attr("transform", `translate(${margin.left}, ${margin.top})`);
@@ -84,18 +401,18 @@ function createGoalBarChart(id){
         const x = d3
             .scaleLinear()
             .domain([0, d3.max(percentageData, (d) => d.percentage + 10 > 100 ? 100 : d.percentage + 10)])
-            .range([0 , width]);
+            .range([0 , widthSmaller]);
 
         svg
             .append("g")
             .attr("id", "gXAxis")
-            .attr("transform", `translate(0, ${height})`)
+            .attr("transform", `translate(0, ${heightSmaller})`)
             .call(d3.axisBottom(x).tickSizeOuter(0));
         
         const y = d3
             .scaleBand()
             .domain(percentageData.map((d) => d.goal))
-            .range([0, height])
+            .range([0, heightSmaller])
             .padding(0.1);
 
         svg
@@ -196,8 +513,8 @@ function createGoalBarChart(id){
            .append("text")
            .attr("class", "x label")
            .attr("text-anchor", "middle")
-           .attr("x", width - 140)
-           .attr("y", height + 35)
+           .attr("x", widthSmaller - 140)
+           .attr("y", heightSmaller + 35)
            .text("Percentage of participants");
     });
 }
@@ -235,14 +552,14 @@ function updateGoalBarChart(gender, combinations){
         const x = d3
             .scaleLinear()
             .domain([0, d3.max(percentageData, (d) => d.percentage + 10 > 100 ? 100 : d.percentage + 10)])
-            .range([0 , width]);
+            .range([0 , widthSmaller]);
         
         svg.select("#gXAxis").call(d3.axisBottom(x).tickSizeOuter(0));
 
         const y = d3
             .scaleBand()
             .domain(percentageData.map((d) => d.goal))
-            .range([0, height])
+            .range([0, heightSmaller])
             .padding(0.1);
 
         svg.select("#gYAxis").call(d3.axisLeft(y).tickSizeOuter(0));
@@ -403,8 +720,8 @@ function checkBubbles(d, array){
 function createBubbleChart(id) {
     const svg = d3
         .select(id)
-        .attr('width',  width + margin.left + margin.right)
-        .attr('height',  height + margin.top + margin.bottom)
+        .attr('width',  widthSmaller + margin.left + margin.right)
+        .attr('height',  heightSmaller + margin.top + margin.bottom)
         //append grouping element 'g' that allows us to apply margins
         .append("g")
         .attr("id","gBubbleChart")
@@ -416,24 +733,24 @@ function createBubbleChart(id) {
         const x = d3
             .scaleLinear()
             .domain([10, 0])
-            .range([width, 0]);
+            .range([widthSmaller, 0]);
         svg
             .append("g")
             .attr("id", "gXAxis")
-            .attr("transform", `translate(0, ${height})`)
+            .attr("transform", `translate(0, ${heightSmaller})`)
             .call(d3.axisBottom(x));
         svg
             .append("text")
             .attr("class", "x label")
             .attr("text-anchor", "middle")
-            .attr("x", width - 120)
-            .attr("y", height + 35)
+            .attr("x", widthSmaller - 120)
+            .attr("y", heightSmaller + 35)
             .text("Importance of Shared Interests");
     
         const y = d3
             .scaleLinear()
             .domain([0, 10])
-            .range([height, 0]);
+            .range([heightSmaller, 0]);
         svg
             .append("g")
             .attr("id", "gYAxis")
@@ -600,14 +917,14 @@ function updateBubbleChart(gender, goals) {
         const x = d3
             .scaleLinear()
             .domain([10, 0])
-            .range([width, 0]);
+            .range([widthSmaller, 0]);
         
         svg.select("#gXAxis").call(d3.axisBottom(x).tickSizeOuter(0));
 
         const y = d3
             .scaleLinear()
             .domain([0, 10])
-            .range([height, 0]);
+            .range([heightSmaller, 0]);
 
         svg.select("#gYAxis").call(d3.axisLeft(y).tickFormat(d => d!=-1 ? d : null));
         

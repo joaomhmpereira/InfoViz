@@ -54,6 +54,13 @@ div.tooltip {
 	width: 68vw;
 	height: 52vh; 
 }
+
+#chart1svg {
+	position: absolute;
+	top: 40px;
+	left: 10px;
+}
+
 #chart2 {
 	position: relative;
 	top: 13.5vh;
