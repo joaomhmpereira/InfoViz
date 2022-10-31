@@ -1,15 +1,24 @@
 const margin = { top: 20, right: 30, bottom: 40, left: 100 };
-const widthSmaller = document.documentElement.clientWidth/3.8 - margin.left - margin.right;
-const heightSmaller = document.documentElement.clientHeight/2.6 - margin.top - margin.bottom;
-const widthBigger = document.documentElement.clientWidth/1.8 - margin.left - margin.right;
-const heightBigger = document.documentElement.clientHeight/2 - margin.top - margin.bottom;
+const clientWidth = document.documentElement.clientWidth;
+const clientHeight = document.documentElement.clientHeight;
+const widthSmaller = clientWidth/3.8 - margin.left - margin.right;
+const heightSmaller = clientHeight/2.6 - margin.top - margin.bottom;
+const widthBigger = clientWidth/1.8 - margin.left - margin.right;
+const heightBigger = clientHeight/2 - margin.top - margin.bottom;
 
 var currentSelectedBars = [];
 var currentSelectedBubbles = [];
 var bubbleCombinations = [];
 var parallelCoordsSliders = [];
 var currentGender = -1;
-var currentAge = [18,55];
+var currentAge = [18,42];
+var currentAgeO = [18,42];
+var currentAttr = [1, 10];
+var currentAmb = [1, 10];
+var currentSinc = [1, 10];
+var currentIntel = [1, 10];
+var currentFun = [1, 10];
+var currentShar = [1, 10];
 
 function init(){
     createParallelCoordinates("#chart1svg")
@@ -19,19 +28,23 @@ function init(){
 }
 
 /**
+ * CASOS A TRATAR:
+ * - Quando já temos pouca data e selecionamos uma bubble/barra p.ex pode não haver matches e o slopegraph nao atualiza
+ * 
+ */
+
+/**
  * ===================================================================================
  * ---------------------------------------SLOPE---------------------------------------
  * ===================================================================================
  */
 
- function updateAges(ageGap) {
-     currentAge = ageGap;
-     updateBubbleChart(currentGender, currentSelectedBars, currentAge);
-     updateGoalBarChart(currentGender, bubbleCombinations, currentAge);
-     updateSlopeGraph(currentGender, currentSelectedBars, bubbleCombinations, currentAge);
-
- }
-
+function callUpdates(){
+    updateBubbleChart(currentGender, currentSelectedBars, currentAge, currentAgeO, currentAttr, currentSinc, currentIntel, currentAmb, currentFun, currentShar);
+    updateGoalBarChart(currentGender, bubbleCombinations, currentAge, currentAgeO, currentAttr, currentSinc, currentIntel, currentAmb, currentFun, currentShar);
+    updateSlopeGraph(currentGender, currentSelectedBars, bubbleCombinations, currentAge, currentAgeO, currentAttr, currentSinc, currentIntel, currentAmb, currentFun, currentShar);
+    updateParallelCoordinates(currentGender, currentSelectedBars, bubbleCombinations, currentAge, currentAgeO, currentAttr, currentSinc, currentIntel, currentAmb, currentFun, currentShar);
+}
 
 function createSlopeGraph(id){
     const svg = d3
@@ -43,22 +56,24 @@ function createSlopeGraph(id){
         .attr("transform", `translate(${margin.left}, ${margin.top })`);
 
     d3.json("data.json").then(function (data) {
-        var data = data.filter((d) => {return d.age != -3 && d.age_o != -3 })
+        data = data.filter(function(d){
+            return d.age != -3 && d.age_o != -3 && d.match == 1
+        })
         var dimensions = Object.keys(data[0]).filter(function(d) { return d == "age" || d == "age_o" });
-        
+        //console.log(data)
 
         // For each dimension, I build a linear scale. I store all in a y object
         const y = {}
         for (i in dimensions) {
           name = dimensions[i]
           y[name] = d3.scaleLinear()
-            .domain( [18, 55] )
-            .range([260, 20])
+            .domain([18,43])
+            .range([heightSmaller, 0])
         }
 
         // Build the X scale -> it find the best position for each Y axis
         x = d3.scalePoint()
-          .range([0, widthBigger-margin.left-margin.right-250])
+          .range([0, widthSmaller])
           .padding(0)
           .domain(dimensions);
 
@@ -74,12 +89,13 @@ function createSlopeGraph(id){
           .data(data, (d) => d.id)
           .join("path")
           .attr("d",  path)
+          .attr("class", "mySlopePath")
           .attr("fill", "none")
           .attr("stroke", (d) =>  lineColor(d.gender))
           .attr("stroke-opacity", 0.5)
-          .attr("stroke-width", 0.8)
+          .attr("stroke-width", 1.5)
 
-          .on("mouseover", function(d) {
+          .on("mouseover", function(event, d) {
             d3.select(this)
               .transition()
               .duration(200)
@@ -91,7 +107,7 @@ function createSlopeGraph(id){
             d3.select(this)
               .transition()
               .duration(100)
-              .attr("stroke-width", 1.2)
+              .attr("stroke-width", 2)
               .attr("stroke-opacity", 0.5)
               .attr("stroke", (d) =>  lineColor(d.gender))
           });
@@ -99,43 +115,52 @@ function createSlopeGraph(id){
         var sliderAge = d3
             .sliderLeft()
             .min(18)
-            .max(55)
+            .max(d3.max(data, (d) => d.age))
             .width(200)
-            .height(240)
-            .ticks(8)
+            .height(heightSmaller-20)
+            .ticks(10)
             .step(1)
             .default([18, 55])
             .fill('#1a4b8e')
-            .on('onchange',  val => updateAges(val));
+            .on('end',  val => {
+                currentAge = ageGap;
+                callUpdates();
+            })
+            
         
         var sliderAgeO = d3
             .sliderRight()
             .min(18)
-            .max(55)
+            .max(d3.max(data, (d) => d.age_o))
             .width(200)
-            .height(240)
-            .ticks(8)
+            .height(heightSmaller-20)
+            .ticks(10)
             .step(1)
             .default([18, 55])
             .fill('#1a4b8e')
-
+            .on('end',  val => {
+                currentAgeO = ageGap;
+                callUpdates();
+            })
+        
+        //console.log(y["age"](18) - y["age"](55))
         x_pos = x("age") + 100;
         var gAge = d3
             .select(id)
             .append('svg')
             .attr('width', 200)
-            .attr('height', 450)
+            .attr('height', y["age"](18) - y["age"](55))
             .append('g')
-            .attr('transform', 'translate('+ x_pos.toString() +',40)');
+            .attr('transform', 'translate('+ x_pos.toString() +',30)');
         
         x_pos = x("age_o") + 100;
         var gAgeO = d3
             .select(id)
             .append('svg')
-            .attr('width', 500)
+            .attr('width', 600)
             .attr('height', 450)
             .append('g')
-            .attr('transform', 'translate('+ x_pos.toString() +',40)');
+            .attr('transform', 'translate('+ x_pos.toString() +',30)');
         
         gAge.call(sliderAge);
         gAgeO.call(sliderAgeO);
@@ -143,76 +168,78 @@ function createSlopeGraph(id){
 
 }
 
-function updateSlopeGraph(gender, goals, combinations, ageGap){
+function updateSlopeGraph(gender, goals, combinations, ageGap, ageOGap, attr, sinc, intel, amb, fun, shar) {
     console.log("Gender slope: " + gender + " Goals Slope: " + goals + " Bubbles Slope: " + combinations.length)
     d3.json("data.json").then(function (data) {
         data = data.filter(function(elem){
-            return elem.age >= ageGap[0] && elem.age <= ageGap[1];
+            return elem.age >= ageGap[0] && elem.age <= ageGap[1] && elem.match == 1 && elem.age_o >= ageOGap[0] && elem.age_o <= ageOGap[1]
+                   && elem.attr_o >= attr[0] && elem.attr_o <= attr[1] && elem.sinc_o >= sinc[0] && elem.sinc_o <= sinc[1] && elem.intel_o >= intel[0] && elem.intel_o <= intel[1]
+                   && elem.amb_o >= amb[0] && elem.amb_o <= amb[1] && elem.fun_o >= fun[0] && elem.fun_o <= fun[1] && elem.shar_o >= shar[0] && elem.shar_o <= shar[1];
         })
         //gender is specified
         if(gender != -1){
             //goals are specified
             if(goals.length != 0){
                 data = data.filter(function(elem){
-                    return elem.gender == gender && goals.includes(elem.goal);
+                    return elem.gender == gender && goals.includes(elem.goal) && elem.match == 1;
                 })
             } if(combinations.length != 0){
                 data = data.filter(function(elem){
-                    return elem.gender == gender && checkBubbles(elem, combinations);
+                    return elem.gender == gender && checkBubbles(elem, combinations) && elem.match == 1;
                 })
             }  else { //goals are not specified
                 data = data.filter(function(elem){
-                    return elem.gender == gender;
+                    return elem.gender == gender && elem.match == 1;
                 })
             }
         } else { //gender is not specified
             //goals are specified
             if(goals.length != 0){
                 data = data.filter(function(elem){
-                    return goals.includes(elem.goal);
+                    return goals.includes(elem.goal) && elem.match == 1;
                 })
             } if(combinations.length != 0){
                 data = data.filter(function(elem){
-                    return checkBubbles(elem, combinations);
+                    return checkBubbles(elem, combinations) && elem.match == 1;
                 })
             } else { //goals and gender are not specified
-                data = data
+                data = data.filter(function(elem){
+                    return elem.match == 1;
+                })
             }
         }
 
         var data = data.filter((d) => {return d.age != -3 && d.age_o != -3 })
         const svg = d3.select("#gSlope");
 
-        var dimensions = Object.keys(data[0]).filter(function(d) { return d == "age" || d == "age_o"});
-        
+        if(data.length != 0) 
+            var dimensions = Object.keys(data[0]).filter(function(d) { return d == "age" || d == "age_o"});
+        else
+            console.log("No data")
         // The path function take a row of the csv as input, and return x and y coordinates of the line to draw for this raw.
         function path(d) {
             return d3.line()(dimensions.map(function(p) { return [x(p), y[p](d[p])]; }));
         }
 
-        d3.select("#gSlope")
-            .selectAll("path")
-            .attr("stroke-opacity", 0.0)
 
-
-         // For each dimension, I build a linear scale. I store all in a y object
-         const y = {}
-         for (i in dimensions) {
-           name = dimensions[i]
-           y[name] = d3.scaleLinear()
-             .domain( [18, 55] )
-             .range([heightSmaller, 30])
-         }
+        // For each dimension, I build a linear scale. I store all in a y object
+        const y = {}
+        for (i in dimensions) {
+            name = dimensions[i]
+            y[name] = d3.scaleLinear()
+            .domain([18,43])
+            .range([heightSmaller, 0])
+        }
  
          // Build the X scale -> it find the best position for each Y axis
          x = d3.scalePoint()
-           .range([0, widthBigger-margin.left-margin.right-250])
+           .range([0, widthSmaller])
            .padding(0)
            .domain(dimensions);
 
 
         svg
-            .selectAll("mySlopePath")
+            .selectAll("path.mySlopePath")
             .data(data, (d) => d.id)
             .join(
                 (enter) => {
@@ -224,8 +251,7 @@ function updateSlopeGraph(gender, goals, combinations, ageGap){
                         .attr("fill", "none")
                         .attr("stroke", (d) =>  lineColor(d.gender))
                         .attr("stroke-opacity", 0.5)
-                        .attr("stroke-width", 1.2)
-                    
+                        .attr("stroke-width", 1.5)
                     lines
                         .transition()
                         .duration(1000)
@@ -235,7 +261,7 @@ function updateSlopeGraph(gender, goals, combinations, ageGap){
                     console.log("update")
                     update
                         .transition()
-                        .duration(1000)
+                        .duration(1500)
                         .attr("d",  path)
                 },
                 (exit) => {
@@ -263,6 +289,61 @@ function lineColor(gender){
 }
 
 
+function filterData(data) {
+    var array = [];
+    for (var i = 1; i <= 552; i++) {
+            var newData = data.filter((d) => {return d.id == i})
+            if (newData.length != 0) {
+                var object = {
+                    id: i,
+                    gender: newData[0].gender,
+                    attr_o:  newData[0].attr_o,
+                    sinc_o:  newData[0].sinc_o,
+                    intel_o:  newData[0].intel_o,
+                    amb_o:  newData[0].amb_o,
+                    fun_o: newData[0].fun_o,
+                    shar_o: newData[0].shar_o
+                }
+            }
+            array.push(object);
+
+    }
+    console.log(array)
+    return array;
+}
+
+function filterDatav2(data){
+    var array = []
+    var seenIds = []
+    data.map((d) => {
+        if(!seenIds.includes(d.id)){
+            array.push(d)
+            seenIds.push(d.id)
+        }
+    })
+    //console.log(array)
+    return array;
+}
+
+function parallelLabels(d){
+    switch (d) {
+        case "attr_o":
+            return "Attractiveness";
+        case "sinc_o":
+            return "Sinceriness";
+        case "intel_o":
+            return "Intelligence";
+        case "amb_o":
+            return "Ambition";
+        case "fun_o":
+            return "Funiness";
+        case "shar_o":
+            return "Shared Interests";
+        default:
+            break;
+    }
+}
+
 function createParallelCoordinates(id){
     const svg = d3
         .select(id)
@@ -273,17 +354,19 @@ function createParallelCoordinates(id){
         .attr("transform", `translate(${margin.left}, ${margin.top})`);
 
     d3.json("data.json").then(function (data) {
+        //console.log("=====DATA ON CREATE=====")
+        data = filterDatav2(data)
+        //console.log("========================")
 
         var dimensions = Object.keys(data[0]).filter(function(d) { return d == "attr_o" || d == "sinc_o" || d == "intel_o" || d == "amb_o" || d == "fun_o" || d == "shar_o" });
         
-
         // For each dimension, I build a linear scale. I store all in a y object
         const y = {}
         for (i in dimensions) {
           name = dimensions[i]
           y[name] = d3.scaleLinear()
             .domain( [1, 10] )
-            .range([heightBigger, 0])
+            .range([heightBigger, 50])
         }
 
         // Build the X scale -> it find the best position for each Y axis
@@ -296,7 +379,6 @@ function createParallelCoordinates(id){
         function path(d) {
             return d3.line()(dimensions.map(function(p) { return [x(p), y[p](d[p])]; }));
         }
-        
 
         // Draw the lines
         svg
@@ -304,10 +386,11 @@ function createParallelCoordinates(id){
           .data(data, (d) => d.id)
           .join("path")
           .attr("d",  path)
+          .attr("class", "myPath")
           .attr("fill", "none")
           .attr("stroke", (d) =>  lineColor(d.gender))
           .attr("stroke-opacity", 0.5)
-          .attr("stroke-width", 0.8)
+          .attr("stroke-width", 1.5)
           .on("mouseover", function(d) {
             d3.select(this)
               .transition()
@@ -320,13 +403,15 @@ function createParallelCoordinates(id){
             d3.select(this)
               .transition()
               .duration(100)
-              .attr("stroke-width", 1.2)
+              .attr("stroke-width", 1.5)
               .attr("stroke-opacity", 0.5)
               .attr("stroke", (d) =>  lineColor(d.gender))
           })
         
-        svg.append("text").attr("x", widthBigger).attr("y", 20).text("Importance of").style("font-size", "20px").attr("alignment-baseline","middle")
-        svg.append("text").attr("x", widthBigger).attr("y", 40).text(".. in a partner").style("font-size", "20px").attr("alignment-baseline","middle")
+        //svg.append("text").attr("x", widthBigger).attr("y", 20).text("Importance of").style("font-size", "20px").attr("alignment-baseline","middle")
+        //svg.append("text").attr("x", widthBigger).attr("y", 40).text(".. in a partner").style("font-size", "20px").attr("alignment-baseline","middle")
+        svg.append("text").attr("x", widthBigger/3).attr("y", -3).text("Importance of .. in a partner").style("font-size", "20px").attr("alignment-baseline","middle").attr("font-weight", "bold")
+
 
           
     
@@ -334,27 +419,17 @@ function createParallelCoordinates(id){
         svg.append("circle").attr("cx",widthBigger - 50).attr("cy",130).attr("r", 6).style("fill", "#74c7fd")
         .on("click", () => {
             currentGender = 0;
-            //updateParallelCoordinates(currentGender);
-            updateBubbleChart(currentGender, currentSelectedBars, currentAge);
-            updateGoalBarChart(currentGender, bubbleCombinations, currentAge);
-            updateSlopeGraph(currentGender, currentSelectedBars, bubbleCombinations, currentAge);
+            callUpdates();
         })
         svg.append("circle").attr("cx",widthBigger - 50).attr("cy",160).attr("r", 6).style("fill", "#fb74fd")
         .on("click", () => {
             currentGender = 1;
-            //updateParallelCoordinates(currentGender);
-            updateBubbleChart(currentGender, currentSelectedBars, currentAge);
-            updateGoalBarChart(currentGender, bubbleCombinations, currentAge);
-            updateSlopeGraph(currentGender, currentSelectedBars, bubbleCombinations, currentAge);
-
+            callUpdates();
         })
         svg.append("circle").attr("cx",widthBigger - 50).attr("cy",190).attr("r", 6).style("fill", "#808080")
         .on("click", () => {
             currentGender = -1;
-            //updateParallelCoordinates(currentGender);
-            updateBubbleChart(currentGender, currentSelectedBars, currentAge);
-            updateGoalBarChart(currentGender, bubbleCombinations, currentAge);
-            updateSlopeGraph(currentGender,currentSelectedBars, bubbleCombinations, currentAge);
+            callUpdates();
         })
 
         svg.append("text").attr("x", widthBigger - 30).attr("y", 135).text("Male participants").style("font-size", "15px").attr("alignment-baseline","middle")
@@ -363,20 +438,20 @@ function createParallelCoordinates(id){
 
 
         // Draw the axis:
-        //svg.selectAll("myAxis")
-        //  // For each dimension of the dataset I add a 'g' element:
-        //  .data(dimensions).enter()
-        //  .append("g")
-        //  // I translate this element to its right position on the x axis
-        //  .attr("transform", function(d) { return "translate(" + x(d) + ")"; })
-        //  // And I build the axis with the call function
-        //  .each(function(d) { d3.select(this).call(d3.axisLeft().scale(y[d])); })
-        //  // Add axis title
-        //  .append("text")
-        //    .style("text-anchor", "middle")
-        //    .attr("y", -9)
-        //    .text(function(d) { return d; })
-        //    .style("fill", "black")
+        svg.selectAll("myAxis")
+          // For each dimension of the dataset I add a 'g' element:
+          .data(dimensions).enter()
+          .append("g")
+          // I translate this element to its right position on the x axis
+          .attr("transform", function(d) { return "translate(" + x(d) + ")"; })
+          // And I build the axis with the call function
+          //.each(function(d) { d3.select(this).call(d3.axisLeft().scale(y[d])); })
+          // Add axis title
+          .append("text")
+            .style("text-anchor", "middle")
+            .attr("y", 25)
+            .text(parallelLabels)
+            .style("fill", "black")
 
         //console.log(parallelCoordsSliders)
         var sliderAttr = d3
@@ -384,73 +459,98 @@ function createParallelCoordinates(id){
             .min(1)
             .max(10)
             .width(200)
-            .height(heightBigger)
+            .height(heightBigger-50)
             .ticks(10)
             .tickValues([1,2,3,4,5,6,7,8,9,10])
             .step(1)
             .default([1, 10])
             .fill('#1a4b8e')
+            .on('end', val => {
+                currentAttr = val;
+                callUpdates();
+            });
 
         var sliderSinc = d3
             .sliderLeft()
             .min(1)
             .max(10)
             .width(200)
-            .height(heightBigger)
+            .height(heightBigger-50)
             .ticks(10)
             .tickValues([1,2,3,4,5,6,7,8,9,10])
             .step(1)
             .default([1, 10])
             .fill('#1a4b8e')
+            .on('end', val => {
+                currentSinc = val;
+                callUpdates();
+            });
 
         var sliderIntel = d3
             .sliderLeft()
             .min(1)
             .max(10)
             .width(200)
-            .height(heightBigger)
+            .height(heightBigger-50)
             .ticks(10)
             .tickValues([1,2,3,4,5,6,7,8,9,10])
             .step(1)
             .default([1, 10])
             .fill('#1a4b8e')
-        
+            .on('end', val => {
+                currentIntel = val;
+                callUpdates();
+            });
+
         var sliderFun = d3
             .sliderRight()
             .min(1)
             .max(10)
             .width(200)
-            .height(heightBigger)
+            .height(heightBigger-50)
             .ticks(10)
             .tickValues([1,2,3,4,5,6,7,8,9,10])
             .step(1)
             .default([1, 10])
             .fill('#1a4b8e')
+            .on('end', val => {
+                currentFun = val;
+                callUpdates();
+            });
+
 
         var sliderAmb = d3
             .sliderRight()
             .min(1)
             .max(10)
             .width(200)
-            .height(heightBigger)
+            .height(heightBigger-50)
             .ticks(10)
             .tickValues([1,2,3,4,5,6,7,8,9,10])
             .step(1)
             .default([1, 10])
             .fill('#1a4b8e')
-        
+            .on('end', val => {
+                currentAmb = val;
+                callUpdates();
+            });
+
         var sliderShar = d3
             .sliderRight()
             .min(1)
             .max(10)
             .width(200)
-            .height(heightBigger)
+            .height(heightBigger-50)
             .ticks(10)
             .tickValues([1,2,3,4,5,6,7,8,9,10])
             .step(1)
             .default([1, 10])
             .fill('#1a4b8e')
-        
+            .on('end', val => {
+                currentShar = val;
+                callUpdates();
+            });
+
         var x_pos = x("attr_o") + 100 ;
         var gRange = d3
           .select(id)
@@ -458,7 +558,7 @@ function createParallelCoordinates(id){
           .attr('width', 200)
           .attr('height', 450)
           .append('g')
-          .attr('transform', 'translate('+ x_pos.toString() +',15)');
+          .attr('transform', 'translate('+ x_pos.toString() +',65)');
         
         x_pos = x("sinc_o") + 100 ;
         var gSinc = d3
@@ -467,7 +567,7 @@ function createParallelCoordinates(id){
             .attr('width', 400)
             .attr('height', 450)
             .append('g')
-            .attr('transform', 'translate(' + x_pos.toString() + ',15)')
+            .attr('transform', 'translate(' + x_pos.toString() + ',65)')
 
         x_pos = x("intel_o") + 100 ;
         var gIntel = d3
@@ -476,7 +576,7 @@ function createParallelCoordinates(id){
             .attr('width', 600)
             .attr('height', 450)
             .append('g')
-            .attr('transform', 'translate(' + x_pos.toString() + ',15)')
+            .attr('transform', 'translate(' + x_pos.toString() + ',65)')
 
         x_pos = x("fun_o") + 100 ;
         var gFun = d3
@@ -485,7 +585,7 @@ function createParallelCoordinates(id){
             .attr('width', 800)
             .attr('height', 450)
             .append('g')
-            .attr('transform', 'translate(' + x_pos.toString() + ',15)')
+            .attr('transform', 'translate(' + x_pos.toString() + ',65)')
         
         x_pos = x("amb_o") + 100 ;
         var gAmb = d3
@@ -494,7 +594,7 @@ function createParallelCoordinates(id){
             .attr('width', 1000)
             .attr('height', 450)
             .append('g')
-            .attr('transform', 'translate(' + x_pos.toString() + ',15)')
+            .attr('transform', 'translate(' + x_pos.toString() + ',65)')
         
         x_pos = x("shar_o") + 100 ;
         var gShar = d3
@@ -503,7 +603,7 @@ function createParallelCoordinates(id){
             .attr('width', 1200)
             .attr('height', 450)
             .append('g')
-            .attr('transform', 'translate(' + x_pos.toString() + ',15)')
+            .attr('transform', 'translate(' + x_pos.toString() + ',65)')
 
 
         gRange.call(sliderAttr);
@@ -516,17 +616,53 @@ function createParallelCoordinates(id){
     });
 }
 
-function updateParallelCoordinates(gender, ageGap){
+function updateParallelCoordinates(gender, goals, combinations, ageGap, ageOGap, attr, sinc, intel, amb, fun, shar){
     //console.log("Gender parallel: " + gender)
     d3.json("data.json").then(function (data) {
+        data = data.filter(function(elem){
+            return elem.age >= ageGap[0] && elem.age <= ageGap[1] && elem.age_o >= ageOGap[0] && elem.age_o <= ageOGap[1]
+                   && elem.attr_o >= attr[0] && elem.attr_o <= attr[1] && elem.sinc_o >= sinc[0] && elem.sinc_o <= sinc[1] && elem.intel_o >= intel[0] && elem.intel_o <= intel[1]
+                   && elem.amb_o >= amb[0] && elem.amb_o <= amb[1] && elem.fun_o >= fun[0] && elem.fun_o <= fun[1] && elem.shar_o >= shar[0] && elem.shar_o <= shar[1];
+        })
         //gender is specified
         if(gender != -1){
-            data = data.filter(function(elem){
-                return elem.gender == gender;
-            })
+            //goals are specified
+            if(goals.length != 0){
+                data = data.filter(function(elem){
+                    return elem.gender == gender && goals.includes(elem.goal) && elem.match == 1;
+                })
+            } if(combinations.length != 0){
+                data = data.filter(function(elem){
+                    return elem.gender == gender && checkBubbles(elem, combinations) && elem.match == 1;
+                })
+            }  else { //goals are not specified
+                data = data.filter(function(elem){
+                    return elem.gender == gender && elem.match == 1;
+                })
+            }
+        } else { //gender is not specified
+            //goals are specified
+            if(goals.length != 0){
+                data = data.filter(function(elem){
+                    return goals.includes(elem.goal) && elem.match == 1;
+                })
+            } if(combinations.length != 0){
+                data = data.filter(function(elem){
+                    return checkBubbles(elem, combinations) && elem.match == 1;
+                })
+            } else { //goals and gender are not specified
+                data = data.filter(function(elem){
+                    return elem.match == 1;
+                })
+            }
         }
 
+        var array = [];
         const svg = d3.select("#gParallel");
+
+        console.log("=====DATA=====")
+        data = filterDatav2(data);
+        console.log("==============")
 
         var dimensions = Object.keys(data[0]).filter(function(d) { return d == "attr_o" || d == "sinc_o" || d == "intel_o" || d == "amb_o" || d == "fun_o" || d == "shar_o" });
         
@@ -536,50 +672,47 @@ function updateParallelCoordinates(gender, ageGap){
         }
 
         // For each dimension, I build a linear scale. I store all in a y object
+        // For each dimension, I build a linear scale. I store all in a y object
         const y = {}
         for (i in dimensions) {
-          name = dimensions[i]
+          var name = dimensions[i]
           y[name] = d3.scaleLinear()
             .domain( [1, 10] )
-            .range([heightBigger, 0])
+            .range([heightBigger, 50])
         }
 
         // Build the X scale -> it find the best position for each Y axis
         x = d3.scalePoint()
-          .range([0, widthBigger])
+          .range([0, widthBigger-margin.left-margin.right])
           .padding(0)
           .domain(dimensions);
         
 
-        
         svg
-            .selectAll("myPath")
+            .selectAll("path.myPath")
             .data(data, (d) => d.id)
             .join(
                 (enter) => {
-                    console.log("enter")
                     lines = enter
                         .append("path")
                         .attr("class", "myPath")
                         .attr("d",  x(0))
                         .attr("fill", "none")
-                        .attr("stroke", lineColor(gender))
+                        .attr("stroke", (d) =>  lineColor(d.gender))
                         .attr("stroke-opacity", 0.5)
-                        .attr("stroke-width", 1.2)
+                        .attr("stroke-width", 2)
                     lines
                         .transition()
-                        .duration(1000)
+                        .duration(3000)
                         .attr("d",  path)
                 }, 
                 (update) => {
-                    console.log("update")
                     update
                         .transition()
-                        .duration(1000)
+                        .duration(3000)
                         .attr("d",  path)
                 },
                 (exit) => {
-                    console.log("exit")
                     exit.remove();
                 }
             )
@@ -632,7 +765,7 @@ function createGoalBarChart(id){
         var percentageData = updateGoalData(data);
         //console.log(percentageData)
 
-        var keys = percentageData.map((d) => {return d.goal})
+        //var keys = percentageData.map((d) => {return d.goal})
         //console.log(keys)
 
         const x = d3
@@ -742,8 +875,8 @@ function createGoalBarChart(id){
                     })
                     .attr("opacity", 0.3);
                 }
-                updateBubbleChart(currentGender, currentSelectedBars, currentAge);
-                updateSlopeGraph(currentGender, currentSelectedBars, currentSelectedBubbles, currentAge);
+                updateBubbleChart(currentGender, currentSelectedBars, currentAge, currentAgeO, currentAttr, currentSinc, currentIntel, currentAmb, currentFun, currentShar);
+                updateSlopeGraph(currentGender, currentSelectedBars, currentSelectedBubbles, currentAge, currentAgeO);
                 
             })
 
@@ -757,12 +890,18 @@ function createGoalBarChart(id){
     });
 }
 
-function updateGoalBarChart(gender, combinations, ageGap){
-    console.log("Gender: " + gender + " Combinations specified: " + combinations.length)
+function updateGoalBarChart(gender, combinations, ageGap, ageOGap, attr, sinc, intel, amb, fun, shar){
+    //console.log("=======BAR CHART=======")
+    //console.log("Age Gap: " + ageGap)
+    //console.log("Age OGap: " + ageOGap)
+    //console.log("Gender: " + gender + " Combinations specified: " + combinations.length)
+    //console.log("=======================")
     d3.json("data.json").then(function (data) {
         //update according ages
         data = data.filter(function(elem){
-            return elem.age >= ageGap[0] && elem.age <= ageGap[1];
+            return elem.age >= ageGap[0] && elem.age <= ageGap[1] && elem.age_o >= ageOGap[0] && elem.age_o <= ageOGap[1]
+                   && elem.attr_o >= attr[0] && elem.attr_o <= attr[1] && elem.sinc_o >= sinc[0] && elem.sinc_o <= sinc[1] && elem.intel_o >= intel[0] && elem.intel_o <= intel[1]
+                   && elem.amb_o >= amb[0] && elem.amb_o <= amb[1] && elem.fun_o >= fun[0] && elem.fun_o <= fun[1] && elem.shar_o >= shar[0] && elem.shar_o <= shar[1];
         })
         //if gender is specified
         if(gender != -1){
@@ -789,7 +928,7 @@ function updateGoalBarChart(gender, combinations, ageGap){
         const svg = d3.select("#gGoal");
 
         var percentageData = updateGoalData(data);
-        console.log(percentageData)
+        //console.log(percentageData)
 
         const x = d3
             .scaleLinear()
@@ -934,7 +1073,7 @@ function sameValuesData(data) {
             }
         }
     }
-    console.log(array)
+    //console.log(array)
     return array;
 }
 
@@ -1007,9 +1146,7 @@ function createBubbleChart(id) {
             //console.log(point[0]);
             var x = point[0]
             var y = point[1]
-            console.log(x)
-            console.log(y)
-            if ((x > 1077 && x < 1120 && y > 125 && y < 431) || (x > 1438 && x < 1521  && y > 125 && y < 431)) {
+            if (checkOutsideClick(x,y) == 1) {
                 onClickOutside(currentGender);
             }
         }
@@ -1071,6 +1208,9 @@ function createBubbleChart(id) {
         
 }
 
+
+
+
 function onClickBubbles(event, d){
     //combination we're analyzing
     var combination = { x: d.x, y: d.y };
@@ -1119,8 +1259,8 @@ function onClickBubbles(event, d){
             .attr("opacity", 0.9);
     }
     //buttonClick(d.id, d.amount)
-    updateGoalBarChart(currentGender, bubbleCombinations, currentAge);
-    updateSlopeGraph(currentGender, currentSelectedBars, bubbleCombinations, currentAge);
+    updateGoalBarChart(currentGender, bubbleCombinations, currentAge, currentAgeO, currentAttr, currentSinc, currentIntel, currentAmb, currentFun, currentShar);
+    updateSlopeGraph(currentGender, currentSelectedBars, bubbleCombinations, currentAge, currentAgeO, currentAttr, currentSinc, currentIntel, currentAmb, currentFun, currentShar);;
 }
 
 
@@ -1131,17 +1271,31 @@ function onClickOutside(){
         currentSelectedBubbles.pop();
         bubbleCombinations.pop();
     }
-    updateBubbleChart(currentGender,currentSelectedBars, currentAge)
-    updateGoalBarChart(currentGender,bubbleCombinations, currentAge)
-    updateSlopeGraph(currentGender, currentSelectedBars, bubbleCombinations, currentAge )
+    updateBubbleChart(currentGender,currentSelectedBars, currentAge, currentAgeO)
+    updateGoalBarChart(currentGender,bubbleCombinations, currentAge, currentAgeO)
+    updateSlopeGraph(currentGender, currentSelectedBars, bubbleCombinations, currentAge, currentAgeO, currentAttr, currentSinc, currentIntel, currentAmb, currentFun, currentShar);
 }
 
-function updateBubbleChart(gender, goals, ageGap) {
+function checkOutsideClick(x , y){
+    return (
+        x > clientWidth/1.44 && x < clientWidth/1.30 && y > clientHeight/6.38 && y < clientHeight/1.82 //area 1
+    ) || (x > clientWidth/1.08 && x < clientWidth && y > clientHeight/6.38 && y < clientHeight/1.82)  //area 2
+    || (x > clientWidth/1.44 && x < clientWidth && y > clientHeight/6.38 && y < clientHeight/5.08) //area 3
+    || (x > clientWidth/1.44 && x < clientWidth && y > clientHeight/2.05 && y < clientHeight/1.82) //area 4
+}
+
+function updateBubbleChart(gender, goals, ageGap, ageOGap, attr, sinc, intel, amb, fun, shar) {
+    //console.log("======= BUBBLE ========")
     //console.log("Gender: " + gender + " Goals: " + goals.length)
+    //console.log("Age Gap: " + ageGap)
+    //console.log("Age OGap: " + ageOGap)
+    //console.log("=======================")
     //update according ages
     d3.json("data.json").then(function (data) {
         data = data.filter(function(elem){
-            return elem.age >= ageGap[0] && elem.age <= ageGap[1];
+            return elem.age >= ageGap[0] && elem.age <= ageGap[1] && elem.age_o >= ageOGap[0] && elem.age_o <= ageOGap[1]
+                   && elem.attr_o >= attr[0] && elem.attr_o <= attr[1] && elem.sinc_o >= sinc[0] && elem.sinc_o <= sinc[1] && elem.intel_o >= intel[0] && elem.intel_o <= intel[1]
+                   && elem.amb_o >= amb[0] && elem.amb_o <= amb[1] && elem.fun_o >= fun[0] && elem.fun_o <= fun[1] && elem.shar_o >= shar[0] && elem.shar_o <= shar[1];
         })
         //gender is specified
         if(gender != -1){
@@ -1168,7 +1322,7 @@ function updateBubbleChart(gender, goals, ageGap) {
         const svg = d3.select("#gBubbleChart");
 
         var array = sameValuesData(data);
-        console.log(array)
+        //console.log(array)
         var allBubbles = array.map((d) => d.id);
         
 
