@@ -11,8 +11,8 @@ var currentSelectedBubbles = [];
 var bubbleCombinations = [];
 var parallelCoordsSliders = [];
 var currentGender = -1;
-var currentAge = [18,42];
-var currentAgeO = [18,42];
+var currentAge = [18,55];
+var currentAgeO = [18,55];
 var currentAttr = [1, 10];
 var currentAmb = [1, 10];
 var currentSinc = [1, 10];
@@ -123,7 +123,7 @@ function createSlopeGraph(id){
             .default([18, 55])
             .fill('#1a4b8e')
             .on('end',  val => {
-                currentAge = ageGap;
+                currentAge = val;
                 callUpdates();
             })
             
@@ -139,7 +139,7 @@ function createSlopeGraph(id){
             .default([18, 55])
             .fill('#1a4b8e')
             .on('end',  val => {
-                currentAgeO = ageGap;
+                currentAgeO = val;
                 callUpdates();
             })
         
@@ -761,12 +761,11 @@ function createGoalBarChart(id){
         .attr("transform", `translate(${margin.left}, ${margin.top})`);
 
     d3.json("data.json").then(function (data) {
-        
-        var percentageData = updateGoalData(data);
-        //console.log(percentageData)
 
+        var percentageData = updateGoalData(data);
+        
         //var keys = percentageData.map((d) => {return d.goal})
-        //console.log(keys)
+        console.log("antes", data)
 
         const x = d3
             .scaleLinear()
@@ -876,7 +875,8 @@ function createGoalBarChart(id){
                     .attr("opacity", 0.3);
                 }
                 updateBubbleChart(currentGender, currentSelectedBars, currentAge, currentAgeO, currentAttr, currentSinc, currentIntel, currentAmb, currentFun, currentShar);
-                updateSlopeGraph(currentGender, currentSelectedBars, currentSelectedBubbles, currentAge, currentAgeO);
+                updateSlopeGraph(currentGender, currentSelectedBars, bubbleCombinations, currentAge, currentAgeO, currentAttr, currentSinc, currentIntel, currentAmb, currentFun, currentShar);
+                updateParallelCoordinates(currentGender, currentSelectedBars, bubbleCombinations, currentAge, currentAgeO, currentAttr, currentSinc, currentIntel, currentAmb, currentFun, currentShar);
                 
             })
 
@@ -892,8 +892,8 @@ function createGoalBarChart(id){
 
 function updateGoalBarChart(gender, combinations, ageGap, ageOGap, attr, sinc, intel, amb, fun, shar){
     //console.log("=======BAR CHART=======")
-    //console.log("Age Gap: " + ageGap)
-    //console.log("Age OGap: " + ageOGap)
+   // console.log("Age Gap: " + ageGap)
+   // console.log("Age OGap: " + ageOGap)
     //console.log("Gender: " + gender + " Combinations specified: " + combinations.length)
     //console.log("=======================")
     d3.json("data.json").then(function (data) {
@@ -928,7 +928,7 @@ function updateGoalBarChart(gender, combinations, ageGap, ageOGap, attr, sinc, i
         const svg = d3.select("#gGoal");
 
         var percentageData = updateGoalData(data);
-        //console.log(percentageData)
+        //console.log("percentage data",data)
 
         const x = d3
             .scaleLinear()
@@ -1181,9 +1181,16 @@ function createBubbleChart(id) {
                   .style("fill", "#3b7a57")                
             })
             .on("mousemove", function(event,d) {
-                Tooltip.html("Nr of participants: " + d.amount + "<br>" +  "Importance of Shared Interests: " + d.x + "<br>" + "Importance of Partner's Race: " + d.y)
-                  .style("left", (event.pageX + 20) + "px")
-                  .style("top", (event.pageY - 28) + "px")
+                if (d.x > 7) {
+                    Tooltip.html("Nr of participants: " + d.amount + "<br>" +  "Importance of Shared Interests: " + d.x + "<br>" + "Importance of Partner's Race: " + d.y)
+                    .style("left", (event.pageX - 180) + "px")
+                    .style("top", (event.pageY-28) + "px")
+                }
+                else {
+                    Tooltip.html("Nr of participants: " + d.amount + "<br>" +  "Importance of Shared Interests: " + d.x + "<br>" + "Importance of Partner's Race: " + d.y)
+                    .style("left", (event.pageX + 20) + "px")
+                    .style("top", (event.pageY - 28) + "px")
+                } 
             })
             .on("mouseout", function(d) {
                 Tooltip.transition()
@@ -1271,9 +1278,7 @@ function onClickOutside(){
         currentSelectedBubbles.pop();
         bubbleCombinations.pop();
     }
-    updateBubbleChart(currentGender,currentSelectedBars, currentAge, currentAgeO)
-    updateGoalBarChart(currentGender,bubbleCombinations, currentAge, currentAgeO)
-    updateSlopeGraph(currentGender, currentSelectedBars, bubbleCombinations, currentAge, currentAgeO, currentAttr, currentSinc, currentIntel, currentAmb, currentFun, currentShar);
+    callUpdates();
 }
 
 function checkOutsideClick(x , y){
@@ -1360,6 +1365,18 @@ function updateBubbleChart(gender, goals, ageGap, ageOGap, attr, sinc, intel, am
             .range([heightSmaller, 0]);
 
         svg.select("#gYAxis").call(d3.axisLeft(y).tickFormat(d => d!=-1 ? d : null));
+
+        var Tooltip = d3.select("body")
+            .append("div")
+            .style("opacity", 0)
+            .attr("class", "tooltip")
+            .style("background-color", "white")
+            .style("border", "solid")
+            .style("border-width", "1px")
+            .style("border-radius", "5px")
+            .style("height", "76px")
+            .style("width", "170px")
+        
         
         svg
             .selectAll("circle.circleValues") 
@@ -1373,8 +1390,34 @@ function updateBubbleChart(gender, goals, ageGap, ageOGap, attr, sinc, intel, am
                     .attr("cy", (d) => y(d.y))
                     .attr("r", 0)
                     .attr("fill", "#4dde12")
-                    .attr("opacity", 0.8)
-                    .on("click", (event, d) => onClickBubbles(event, d));          
+                    .attr("opacity", 0.8)                    
+                    .on("mouseover", function(event,d) {
+                        Tooltip.transition()
+                          .duration(200)
+                          .style("opacity", 1)
+                        d3.select(this)
+                          .style("fill", "#3b7a57")                
+                    })
+                    .on("mousemove", function(event,d) {
+                        if (d.x > 7) {
+                            Tooltip.html("Nr of participants: " + d.amount + "<br>" +  "Importance of Shared Interests: " + d.x + "<br>" + "Importance of Partner's Race: " + d.y)
+                            .style("left", (event.pageX - 180) + "px")
+                            .style("top", (event.pageY-28) + "px")
+                        }
+                        else {
+                            Tooltip.html("Nr of participants: " + d.amount + "<br>" +  "Importance of Shared Interests: " + d.x + "<br>" + "Importance of Partner's Race: " + d.y)
+                            .style("left", (event.pageX + 20) + "px")
+                            .style("top", (event.pageY - 28) + "px")
+                        } 
+                    })
+                    .on("mouseout", function(d) {
+                        Tooltip.transition()
+                            .duration(200)
+                            .style("opacity", 0);
+                        d3.select(this)
+                            .style("fill", "#4dde12")   
+                    })
+                    .on("click", (event, d) => onClickBubbles(event, d));   
                 circles
                     .transition()
                     .duration(1000)
