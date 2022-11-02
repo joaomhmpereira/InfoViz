@@ -21,6 +21,8 @@ var currentFun = [1, 10];
 var currentShar = [1, 10];
 
 function init(){
+    console.log(clientWidth)
+    console.log(clientHeight)
     createParallelCoordinates("#chart1svg")
     createBubbleChart("#chart2svg");
     createSlopeGraph("#chart3svg");
@@ -49,7 +51,7 @@ function callUpdates(){
 function createSlopeGraph(id){
     const svg = d3
         .select(id)
-        .attr("width", widthSmaller + margin.left + margin.right + 200)
+        .attr("width", widthSmaller*1.4 + margin.left + margin.right + 200)
         .attr("height", widthSmaller + margin.top + margin.bottom)
         .append("g")
         .attr("id", "gSlope")
@@ -118,7 +120,7 @@ function createSlopeGraph(id){
             .max(d3.max(data, (d) => d.age))
             .width(200)
             .height(heightSmaller-20)
-            .ticks(10)
+            .ticks(0)
             .step(1)
             .default([18, 55])
             .fill('#1a4b8e')
@@ -134,7 +136,7 @@ function createSlopeGraph(id){
             .max(d3.max(data, (d) => d.age_o))
             .width(200)
             .height(heightSmaller-20)
-            .ticks(10)
+            .ticks(0)
             .step(1)
             .default([18, 55])
             .fill('#1a4b8e')
@@ -344,6 +346,15 @@ function parallelLabels(d){
     }
 }
 
+function parallelText(d){
+    return "Attractiveness: " + d.attr_o + "</br>" 
+    + "Sinceriness: " + d.sinc_o + "</br>"
+    + "Intelligence: " + d.intel_o + "</br>" 
+    + "Ambition: " + d.amb_o + "</br>" 
+    + "Funiness: " + d.fun_o + "</br>" 
+    + "Shared Interests: " + d.shar_o;
+}
+
 function createParallelCoordinates(id){
     const svg = d3
         .select(id)
@@ -380,6 +391,19 @@ function createParallelCoordinates(id){
             return d3.line()(dimensions.map(function(p) { return [x(p), y[p](d[p])]; }));
         }
 
+        var Tooltip = d3.select("body")
+            .append("div")
+            .style("opacity", 0)
+            .attr("class", "tooltip")
+            .style("background-color", "white")
+            .style("border", "solid")
+            .style("border-width", "1px")
+            .style("border-radius", "5px")
+            .style("height", "85px")
+            .style("width", "130px")
+
+        
+
         // Draw the lines
         svg
           .selectAll("myPath")
@@ -391,22 +415,35 @@ function createParallelCoordinates(id){
           .attr("stroke", (d) =>  lineColor(d.gender))
           .attr("stroke-opacity", 0.5)
           .attr("stroke-width", 1.5)
-          .on("mouseover", function(d) {
+          .on("mouseover", function(event,d) {
             d3.select(this)
               .transition()
               .duration(200)
               .attr("stroke-width", 6)
               .attr("stroke-opacity", 1)
               .attr("stroke", "red")
-          })
-          .on("mouseleave", function(d) {
+            Tooltip.transition()
+              .duration(200)
+              .style("opacity", .9);
+            Tooltip.html(parallelText(d))
+              .style("left", (event.pageX + 20) + "px")
+              .style("top", (event.pageY - 28) + "px");
+        })
+        .on("mousemove", function(event,d) {
+            Tooltip.style("left", (event.pageX + 20) + "px")
+                .style("top", (event.pageY - 28) + "px");
+        })
+        .on("mouseout", function(d) {
+            Tooltip.transition()
+                .duration(200)
+                .style("opacity", 0);
             d3.select(this)
-              .transition()
-              .duration(100)
-              .attr("stroke-width", 1.5)
-              .attr("stroke-opacity", 0.5)
-              .attr("stroke", (d) =>  lineColor(d.gender))
-          })
+            .transition()
+            .duration(100)
+            .attr("stroke-width", 1.5)
+            .attr("stroke-opacity", 0.5)
+            .attr("stroke", (d) =>  lineColor(d.gender))
+        })
         
         //svg.append("text").attr("x", widthBigger).attr("y", 20).text("Importance of").style("font-size", "20px").attr("alignment-baseline","middle")
         //svg.append("text").attr("x", widthBigger).attr("y", 40).text(".. in a partner").style("font-size", "20px").attr("alignment-baseline","middle")
@@ -754,7 +791,7 @@ function barChartColor(d){
 function createGoalBarChart(id){
     const svg = d3
         .select(id)
-        .attr("width", widthSmaller + margin.left + margin.right)
+        .attr("width", widthSmaller*1.4 + margin.left + margin.right)
         .attr("height", heightSmaller + margin.top + margin.bottom)
         .append("g")
         .attr("id", "gGoal")
@@ -770,7 +807,7 @@ function createGoalBarChart(id){
         const x = d3
             .scaleLinear()
             .domain([0, d3.max(percentageData, (d) => d.percentage + 10 > 100 ? 100 : d.percentage + 10)])
-            .range([0 , widthSmaller]);
+            .range([0 , widthSmaller*1.45]);
 
         svg
             .append("g")
@@ -933,7 +970,7 @@ function updateGoalBarChart(gender, combinations, ageGap, ageOGap, attr, sinc, i
         const x = d3
             .scaleLinear()
             .domain([0, d3.max(percentageData, (d) => d.percentage + 10 > 100 ? 100 : d.percentage + 10)])
-            .range([0 , widthSmaller]);
+            .range([0 , widthSmaller*1.45]);
         
         svg.select("#gXAxis").call(d3.axisBottom(x).tickSizeOuter(0));
 
@@ -1103,7 +1140,7 @@ function checkBubbles(d, array){
 function createBubbleChart(id) {
     const svg = d3
         .select(id)
-        .attr('width',  widthSmaller + margin.left + margin.right)
+        .attr('width',  widthSmaller*1.2 + margin.left + margin.right)
         .attr('height',  heightSmaller + margin.top + margin.bottom)
         //append grouping element 'g' that allows us to apply margins
         .append("g")
@@ -1118,7 +1155,7 @@ function createBubbleChart(id) {
         const x = d3
             .scaleLinear()
             .domain([10, 0])
-            .range([widthSmaller, 0]);
+            .range([widthSmaller*1.35, 0]);
         svg
             .append("g")
             .attr("id", "gXAxis")
@@ -1142,13 +1179,16 @@ function createBubbleChart(id) {
             .call(d3.axisLeft(y).tickFormat(d => d!=-1 ? d : null));
         
         window.onclick = function(event){
+            console.log("=== CLICK ===")
             var point = d3.pointer(event);
             //console.log(point[0]);
             var x = point[0]
             var y = point[1]
+            console.log("x: " + x + " y: " + y)
             if (checkOutsideClick(x,y) == 1) {
                 onClickOutside(currentGender);
             }
+            console.log("============")
         }
             
         var Tooltip = d3.select("body")
@@ -1159,8 +1199,8 @@ function createBubbleChart(id) {
             .style("border", "solid")
             .style("border-width", "1px")
             .style("border-radius", "5px")
-            .style("height", "76px")
-            .style("width", "170px")
+            .style("height", "45px")
+            .style("width", "200px")
         svg
             .selectAll("circle.circleValues") 
             .data(array, (d) => d.id) 
@@ -1181,13 +1221,13 @@ function createBubbleChart(id) {
                   .style("fill", "#3b7a57")                
             })
             .on("mousemove", function(event,d) {
-                if (d.x > 7) {
-                    Tooltip.html("Nr of participants: " + d.amount + "<br>" +  "Importance of Shared Interests: " + d.x + "<br>" + "Importance of Partner's Race: " + d.y)
-                    .style("left", (event.pageX - 180) + "px")
-                    .style("top", (event.pageY-28) + "px")
+                if (d.x >= 6) {
+                    Tooltip.html("Number of participants: " + d.amount + "<br>" +  "Importance of Shared Interests: " + d.x + "<br>" + "Importance of Partner's Race: " + d.y)
+                    .style("left", (event.pageX - 220) + "px")
+                    .style("top", (event.pageY - 28) + "px")
                 }
                 else {
-                    Tooltip.html("Nr of participants: " + d.amount + "<br>" +  "Importance of Shared Interests: " + d.x + "<br>" + "Importance of Partner's Race: " + d.y)
+                    Tooltip.html("Number of participants: " + d.amount + "<br>" +  "Importance of Shared Interests: " + d.x + "<br>" + "Importance of Partner's Race: " + d.y)
                     .style("left", (event.pageX + 20) + "px")
                     .style("top", (event.pageY - 28) + "px")
                 } 
@@ -1266,8 +1306,9 @@ function onClickBubbles(event, d){
             .attr("opacity", 0.9);
     }
     //buttonClick(d.id, d.amount)
-    updateGoalBarChart(currentGender, bubbleCombinations, currentAge, currentAgeO, currentAttr, currentSinc, currentIntel, currentAmb, currentFun, currentShar);
-    updateSlopeGraph(currentGender, currentSelectedBars, bubbleCombinations, currentAge, currentAgeO, currentAttr, currentSinc, currentIntel, currentAmb, currentFun, currentShar);;
+    //updateGoalBarChart(currentGender, bubbleCombinations, currentAge, currentAgeO, currentAttr, currentSinc, currentIntel, currentAmb, currentFun, currentShar);
+    //updateSlopeGraph(currentGender, currentSelectedBars, bubbleCombinations, currentAge, currentAgeO, currentAttr, currentSinc, currentIntel, currentAmb, currentFun, currentShar);;
+    callUpdates();
 }
 
 
@@ -1355,7 +1396,7 @@ function updateBubbleChart(gender, goals, ageGap, ageOGap, attr, sinc, intel, am
         const x = d3
             .scaleLinear()
             .domain([10, 0])
-            .range([widthSmaller, 0]);
+            .range([widthSmaller*1.35, 0]);
         
         svg.select("#gXAxis").call(d3.axisBottom(x).tickSizeOuter(0));
 

@@ -15,8 +15,8 @@ div.tooltip {
 	width: 120px;
 	height: 28px;
 	padding: 2px;
-	font: 12px sans-serif;
-	background: lightsteelblue;
+	font-family: 'Inter', sans-serif;;
+	font-size: 12px;
 	border: 0px;
 	border-radius: 8px;
 	pointer-events: none;
@@ -46,12 +46,13 @@ div.tooltip {
 	height: 100%;
 }
 
+/* Parallel Coordinates */
 #chart1 {
 	/*border: 0px none;*/
 	position: absolute;
 	top: 10px;
 	left: 10px;
-	width: 68vw;
+	width: 64vw;
 	height: 52vh; 
 }
 
@@ -61,11 +62,12 @@ div.tooltip {
 	left: 10px;
 }
 
+/* Bubble Chart */
 #chart2 {
 	position: relative;
 	top: 13.5vh;
-	left: 69vw;
-	width: 29vw;
+	left: 66vw;
+	width: 32vw;
 	height: 39.5vh;  
 }
 
@@ -75,20 +77,28 @@ div.tooltip {
 	right: 40px;
 }
 
+/* Slopegraph */
 #chart3 { 
 	/*border: 0px none;*/
 	position: absolute;
 	bottom: 10px;
-	left: 10px;
-	width: 37vw;
+	left: 5vw;
+	width: 40vw;
 	height: 39.5vh;
 }
 
+#chart3svg {
+	position: absolute;
+	top: 40px;
+	left: 60px;
+}
+
+/* Bar Chart */
 #chart4 {
 	position: absolute;
 	bottom: 10px;
-	left: 38vw;
-	width: 30.5vw;
+	right: 5vw;
+	width: 40vw;
 	height: 39.5vh; 
 }
 
