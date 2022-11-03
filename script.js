@@ -21,13 +21,28 @@ var currentFun = [1, 10];
 var currentShar = [1, 10];
 
 function init(){
-    console.log(clientWidth)
-    console.log(clientHeight)
     createParallelCoordinates("#chart1svg")
     createBubbleChart("#chart2svg");
     createSlopeGraph("#chart3svg");
     createGoalBarChart("#chart4svg");
 }
+
+window.onclick = function(event){
+    //console.log("=== CLICK ===")
+    var point = d3.pointer(event);
+    //console.log(point[0]);
+    var x = point[0]
+    var y = point[1]
+    console.log("x: " + x + " y: " + y)
+    if (checkOutsideClickBar(x,y) == 1) {
+        onClickOutsideBar(currentGender);
+    }
+    if (checkOutsideClickBubble(x,y) == 1) {
+        onClickOutsideBubble(currentGender);
+    }
+    //console.log("============")
+}
+
 
 /**
  * CASOS A TRATAR:
@@ -61,7 +76,7 @@ function createSlopeGraph(id){
         data = data.filter(function(d){
             return d.age != -3 && d.age_o != -3 && d.match == 1
         })
-        var dimensions = Object.keys(data[0]).filter(function(d) { return d == "age" || d == "age_o" });
+        var dimensions = ["age","age_o"]
         //console.log(data)
 
         // For each dimension, I build a linear scale. I store all in a y object
@@ -69,8 +84,8 @@ function createSlopeGraph(id){
         for (i in dimensions) {
           name = dimensions[i]
           y[name] = d3.scaleLinear()
-            .domain([18,43])
-            .range([heightSmaller, 0])
+            .domain([18,42])
+            .range([heightSmaller-9, 7])
         }
 
         // Build the X scale -> it find the best position for each Y axis
@@ -81,9 +96,25 @@ function createSlopeGraph(id){
 
         // The path function take a row of the csv as input, and return x and y coordinates of the line to draw for this raw.
         function path(d) {
-            return d3.line()(dimensions.map(function(p) { return [x(p), y[p](d[p])]; }));
+            return d3.line()(dimensions.map(function(p) { return [x(p), y[p](d[p])];  }));
         }
 
+        // Draw the axis:
+        svg.selectAll("myAxis")
+        // For each dimension of the dataset I add a 'g' element:
+            .data(dimensions).enter()
+            .append("g")
+        // I translate this element to its right position on the x axis
+            .attr("transform", function(d) { return "translate(" + x(d) + ")"; })
+        // And I build the axis with the call function
+            .each(function(d) { if (d == "age") { d3.select(this).call(d3.axisLeft().scale(y[d])) } else {d3.select(this).call(d3.axisRight().scale(y[d])) }; })
+        // Add axis title
+            .append("text")
+            .style("text-anchor", "middle")
+            .attr("y", -6)
+            .text(function(d) { return d; })
+            .style("fill", "black")
+        
 
         // Draw the lines
         svg
@@ -113,6 +144,9 @@ function createSlopeGraph(id){
               .attr("stroke-opacity", 0.5)
               .attr("stroke", (d) =>  lineColor(d.gender))
           });
+
+        svg.append("text").attr("x", widthBigger/23).attr("y", -5).text("Ages Among Matches").style("font-size", "20px").attr("font-weight", "light");
+
             
         var sliderAge = d3
             .sliderLeft()
@@ -146,7 +180,7 @@ function createSlopeGraph(id){
             })
         
         //console.log(y["age"](18) - y["age"](55))
-        x_pos = x("age") + 100;
+        x_pos = x("age") + 50;
         var gAge = d3
             .select(id)
             .append('svg')
@@ -155,7 +189,7 @@ function createSlopeGraph(id){
             .append('g')
             .attr('transform', 'translate('+ x_pos.toString() +',30)');
         
-        x_pos = x("age_o") + 100;
+        x_pos = x("age_o") + 150;
         var gAgeO = d3
             .select(id)
             .append('svg')
@@ -214,10 +248,12 @@ function updateSlopeGraph(gender, goals, combinations, ageGap, ageOGap, attr, si
         var data = data.filter((d) => {return d.age != -3 && d.age_o != -3 })
         const svg = d3.select("#gSlope");
 
-        if(data.length != 0) 
-            var dimensions = Object.keys(data[0]).filter(function(d) { return d == "age" || d == "age_o"});
-        else
-            console.log("No data")
+        if (data.length == 0) {
+            alert("Combination not found in new data")
+            window.location.reload();
+        }
+    
+        var dimensions = ["age","age_o"]
         // The path function take a row of the csv as input, and return x and y coordinates of the line to draw for this raw.
         function path(d) {
             return d3.line()(dimensions.map(function(p) { return [x(p), y[p](d[p])]; }));
@@ -230,7 +266,7 @@ function updateSlopeGraph(gender, goals, combinations, ageGap, ageOGap, attr, si
             name = dimensions[i]
             y[name] = d3.scaleLinear()
             .domain([18,43])
-            .range([heightSmaller, 0])
+            .range([heightSmaller-9, 7])
         }
  
          // Build the X scale -> it find the best position for each Y axis
@@ -245,7 +281,7 @@ function updateSlopeGraph(gender, goals, combinations, ageGap, ageOGap, attr, si
             .data(data, (d) => d.id)
             .join(
                 (enter) => {
-                    console.log("enter")
+                    //console.log("enter")
                     lines = enter
                         .append("path")
                         .attr("class", "mySlopePath")
@@ -260,14 +296,14 @@ function updateSlopeGraph(gender, goals, combinations, ageGap, ageOGap, attr, si
                         .attr("d",  path)
                 }, 
                 (update) => {
-                    console.log("update")
+                    //console.log("update")
                     update
                         .transition()
                         .duration(1500)
                         .attr("d",  path)
                 },
                 (exit) => {
-                    console.log("exit")
+                    //console.log("exit")
                     exit.remove();
                 }
             )
@@ -363,7 +399,7 @@ function createParallelCoordinates(id){
         .append("g")
         .attr("id", "gParallel")
         .attr("transform", `translate(${margin.left}, ${margin.top})`);
-
+    
     d3.json("data.json").then(function (data) {
         //console.log("=====DATA ON CREATE=====")
         data = filterDatav2(data)
@@ -447,7 +483,7 @@ function createParallelCoordinates(id){
         
         //svg.append("text").attr("x", widthBigger).attr("y", 20).text("Importance of").style("font-size", "20px").attr("alignment-baseline","middle")
         //svg.append("text").attr("x", widthBigger).attr("y", 40).text(".. in a partner").style("font-size", "20px").attr("alignment-baseline","middle")
-        svg.append("text").attr("x", widthBigger/3).attr("y", -3).text("Importance of .. in a partner").style("font-size", "20px").attr("alignment-baseline","middle").attr("font-weight", "bold")
+        svg.append("text").attr("x", widthBigger/3).attr("y", -5).text("Importance of .. in a partner").style("font-size", "20px").attr("font-weight", "light")
 
 
           
@@ -697,9 +733,15 @@ function updateParallelCoordinates(gender, goals, combinations, ageGap, ageOGap,
         var array = [];
         const svg = d3.select("#gParallel");
 
-        console.log("=====DATA=====")
+        //console.log("=====DATA=====")
         data = filterDatav2(data);
-        console.log("==============")
+        //console.log("==============")
+
+        if (data.length == 0) {
+            alert("Combination not found in new data")
+            window.location.reload();
+        }
+
 
         var dimensions = Object.keys(data[0]).filter(function(d) { return d == "attr_o" || d == "sinc_o" || d == "intel_o" || d == "amb_o" || d == "fun_o" || d == "shar_o" });
         
@@ -802,7 +844,6 @@ function createGoalBarChart(id){
         var percentageData = updateGoalData(data);
         
         //var keys = percentageData.map((d) => {return d.goal})
-        console.log("antes", data)
 
         const x = d3
             .scaleLinear()
@@ -869,6 +910,7 @@ function createGoalBarChart(id){
                 //console.log("clicked bar")
                 var id = d.id
                 //clicked bar is already selected, need to deselect
+               // console.log("currentSelectedBars: ", currentSelectedBars)
                 if(currentSelectedBars.includes(id)){
                     //console.log("Popping bar: " + id)
                     //array.pop doesn't work because it always removes the last element
@@ -928,10 +970,10 @@ function createGoalBarChart(id){
 }
 
 function updateGoalBarChart(gender, combinations, ageGap, ageOGap, attr, sinc, intel, amb, fun, shar){
-    //console.log("=======BAR CHART=======")
+   // console.log("=======BAR CHART=======")
    // console.log("Age Gap: " + ageGap)
    // console.log("Age OGap: " + ageOGap)
-    //console.log("Gender: " + gender + " Combinations specified: " + combinations.length)
+    //console.log("Gender: " + gender + " Combinations specified: " + combinations)
     //console.log("=======================")
     d3.json("data.json").then(function (data) {
         //update according ages
@@ -965,7 +1007,23 @@ function updateGoalBarChart(gender, combinations, ageGap, ageOGap, attr, sinc, i
         const svg = d3.select("#gGoal");
 
         var percentageData = updateGoalData(data);
-        //console.log("percentage data",data)
+
+        //console.log("percentage data: ", percentageData, "selected bars: ", currentSelectedBars)
+
+        percentageData.forEach(element => { 
+            if (element.percentage == 0 && currentSelectedBars.includes(element.id)) {
+                const index = currentSelectedBars.indexOf(element.id);
+                currentSelectedBars.splice(index, 1);
+                console.log("antes update: ",currentSelectedBars)
+                if (currentSelectedBars.length == 0) {
+                    alert("Combination not found in new data")
+                    window.location.reload();
+
+                }
+            }
+          
+        });
+
 
         const x = d3
             .scaleLinear()
@@ -979,6 +1037,8 @@ function updateGoalBarChart(gender, combinations, ageGap, ageOGap, attr, sinc, i
             .domain(percentageData.map((d) => d.goal))
             .range([0, heightSmaller])
             .padding(0.1);
+        
+
 
         svg.select("#gYAxis").call(d3.axisLeft(y).tickSizeOuter(0));
         
@@ -1013,7 +1073,9 @@ function updateGoalBarChart(gender, combinations, ageGap, ageOGap, attr, sinc, i
                     exit.remove();
                 }
             );
+    updateBarOpacity();
     });
+
 }
 
 function updateGoalData(data){
@@ -1178,18 +1240,6 @@ function createBubbleChart(id) {
             .attr("id", "gYAxis")
             .call(d3.axisLeft(y).tickFormat(d => d!=-1 ? d : null));
         
-        window.onclick = function(event){
-            console.log("=== CLICK ===")
-            var point = d3.pointer(event);
-            //console.log(point[0]);
-            var x = point[0]
-            var y = point[1]
-            console.log("x: " + x + " y: " + y)
-            if (checkOutsideClick(x,y) == 1) {
-                onClickOutside(currentGender);
-            }
-            console.log("============")
-        }
             
         var Tooltip = d3.select("body")
             .append("div")
@@ -1251,8 +1301,9 @@ function createBubbleChart(id) {
             .attr("dy", ".75em")
             .attr("transform", "rotate(-90)")
             .text("Importance of Partner's Race");
-        });
         
+        });
+    
 }
 
 
@@ -1312,9 +1363,7 @@ function onClickBubbles(event, d){
 }
 
 
-function onClickOutside(){
-    console.log(currentSelectedBubbles);
-    console.log(bubbleCombinations)
+function onClickOutsideBubble(){
     while (currentSelectedBubbles.length != 0) {
         currentSelectedBubbles.pop();
         bubbleCombinations.pop();
@@ -1322,18 +1371,37 @@ function onClickOutside(){
     callUpdates();
 }
 
-function checkOutsideClick(x , y){
+function onClickOutsideBar(){
+    while (currentSelectedBars.length != 0) {
+        currentSelectedBars.pop();
+    }
+    callUpdates();
+}
+
+function checkOutsideClickBubble(x , y){
+    console.log(clientWidth/85.78, clientWidth/26.62  , clientHeight/6.16 , clientHeight/1.809   )
+
     return (
-        x > clientWidth/1.44 && x < clientWidth/1.30 && y > clientHeight/6.38 && y < clientHeight/1.82 //area 1
-    ) || (x > clientWidth/1.08 && x < clientWidth && y > clientHeight/6.38 && y < clientHeight/1.82)  //area 2
-    || (x > clientWidth/1.44 && x < clientWidth && y > clientHeight/6.38 && y < clientHeight/5.08) //area 3
-    || (x > clientWidth/1.44 && x < clientWidth && y > clientHeight/2.05 && y < clientHeight/1.82) //area 4
+        x > clientWidth/85.78 && x < clientWidth/26.62 && y > clientHeight/6.16 && y < clientHeight/1.809  )//area 1
+    || (x > clientWidth/3.44 && x < clientWidth/3.039 && y > clientHeight/6.16 && y < clientHeight/1.809  )  //area 2
+    || (x > clientWidth/85.78  && x < clientWidth/3.039 && y > clientHeight/6.16 && y < clientHeight/5.04) //area 3
+    || (x > clientWidth/85.78  && x < clientWidth/3.039 && y > clientHeight/2.007 && y < clientHeight/1.809) //area 4
+}
+
+function checkOutsideClickBar(x , y){
+    return (
+        x > clientWidth/2.016 && x < clientWidth/1.673 && y > clientHeight/1.75 && y < clientHeight/1.044 ) //area 1
+    || (x > clientWidth/1.232 && x < clientWidth/1.12 && y > clientHeight/1.75 && y < clientHeight/1.044 )  //area 2
+    || (x > clientWidth/2.016  && x < clientWidth/1.12 && y > clientHeight/1.75 && y < clientHeight/1.68 ) //area 3
+    || (x > clientWidth/2.016  && x < clientWidth/1.12 && y > clientHeight/1.105 && y < clientHeight/1.044) //area 4
 }
 
 function updateBubbleChart(gender, goals, ageGap, ageOGap, attr, sinc, intel, amb, fun, shar) {
     //console.log("======= BUBBLE ========")
     //console.log("Gender: " + gender + " Goals: " + goals.length)
     //console.log("Age Gap: " + ageGap)
+    console.log("bars",currentSelectedBars.length)
+
     //console.log("Age OGap: " + ageOGap)
     //console.log("=======================")
     //update according ages
@@ -1368,9 +1436,8 @@ function updateBubbleChart(gender, goals, ageGap, ageOGap, attr, sinc, intel, am
         const svg = d3.select("#gBubbleChart");
 
         var array = sameValuesData(data);
-        //console.log(array)
+        console.log(array)
         var allBubbles = array.map((d) => d.id);
-        
 
         //if selected bubble is not in the new data, remove it from the array of selected bubbles
         currentSelectedBubbles.forEach(element => {
@@ -1384,14 +1451,14 @@ function updateBubbleChart(gender, goals, ageGap, ageOGap, attr, sinc, intel, am
                 bubbleCombinations.forEach(elem => {
                     const index2 = currentSelectedBubbles.findIndex(elem2 => elem.x == elem2.x && elem.y == elem2.y);
                     if (index2 <= -1) {
-                        console.log("Combination not found in new data")
                         bubbleCombinations.splice(index2, 1);
+                        alert("Combination not found in new data")
+                        window.location.reload();
                     }
                 })
             }
         });
 
-        //console.log(currentSelectedBubbles)
 
         const x = d3
             .scaleLinear()
@@ -1493,3 +1560,18 @@ function updateBubbleOpacity(){
         d3.selectAll(".itemValue").attr("opacity", 0.8);
     }
 }
+
+function updateBarOpacity(){
+    if(currentSelectedBars.length != 0) {
+        d3.selectAll(".barItemValue")
+          .filter(function(d){
+            return !currentSelectedBars.includes(d.id);
+          })
+          .attr("opacity", 0.3);
+    } else {
+        console.log(":)")
+        d3.selectAll(".barItemValue").attr("opacity", 1.0);
+    }
+}
+
+
