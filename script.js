@@ -11,8 +11,8 @@ var currentSelectedBubbles = [];
 var bubbleCombinations = [];
 var parallelCoordsSliders = [];
 var currentGender = -1;
-var currentAge = [18,55];
-var currentAgeO = [18,55];
+var currentAge = [18,42];
+var currentAgeO = [18,42];
 var currentAttr = [1, 10];
 var currentAmb = [1, 10];
 var currentSinc = [1, 10];
@@ -82,8 +82,8 @@ function createSlopeGraph(id){
         // For each dimension, I build a linear scale. I store all in a y object
         const y = {}
         for (i in dimensions) {
-          name = dimensions[i]
-          y[name] = d3.scaleLinear()
+            name = dimensions[i]
+            y[name] = d3.scaleLinear()
             .domain([18,42])
             .range([heightSmaller-9, 7])
         }
@@ -99,22 +99,43 @@ function createSlopeGraph(id){
             return d3.line()(dimensions.map(function(p) { return [x(p), y[p](d[p])];  }));
         }
 
+
         // Draw the axis:
         svg.selectAll("myAxis")
-        // For each dimension of the dataset I add a 'g' element:
-            .data(dimensions).enter()
+            .data(dimensions[0]).enter()
             .append("g")
-        // I translate this element to its right position on the x axis
-            .attr("transform", function(d) { return "translate(" + x(d) + ")"; })
-        // And I build the axis with the call function
-            .each(function(d) { if (d == "age") { d3.select(this).call(d3.axisLeft().scale(y[d])) } else {d3.select(this).call(d3.axisRight().scale(y[d])) }; })
-        // Add axis title
+            .attr("id", "slopeYAxis")
+            .attr("transform", function(d) { return "translate(" + x("age") + ")"; })
+            d3.select("#slopeYAxis").call(d3.axisLeft().scale(y["age"]).tickSizeOuter(0)) 
             .append("text")
             .style("text-anchor", "middle")
             .attr("y", -6)
-            .text(function(d) { return d; })
+            .text("age")
             .style("fill", "black")
         
+         // Draw the axis:
+        svg.selectAll("myAxis")
+            .data(dimensions[1]).enter()
+            .append("g")
+            .attr("id", "slopeYAxis2")
+            .attr("transform", function(d) { return "translate(" + x("age_o") + ")"; })
+            d3.select("#slopeYAxis2").call(d3.axisRight().scale(y["age_o"]).tickSizeOuter(0)) 
+            .append("text")
+            .style("text-anchor", "middle")
+            .attr("y", -6)
+            .text("age_o")
+            .style("fill", "black")
+        
+        var Tooltip = d3.select("body")
+            .append("div")
+            .style("opacity", 0)
+            .attr("class", "tooltip")
+            .style("background-color", "white")
+            .style("border", "solid")
+            .style("border-width", "1px")
+            .style("border-radius", "5px")
+            .style("height", "30px")
+            .style("width", "130px")
 
         // Draw the lines
         svg
@@ -134,9 +155,22 @@ function createSlopeGraph(id){
               .duration(200)
               .attr("stroke-width", 6)
               .attr("stroke-opacity", 1)
-              .attr("stroke", "red")
+              .attr("stroke", (d) =>  lineColor(d.gender))
+              Tooltip.transition()
+              .duration(200)
+              .style("opacity", .9);
+              Tooltip.html(slopeText(d))
+              .style("left", (event.pageX + 20) + "px")
+              .style("top", (event.pageY - 28) + "px");
           })
+          .on("mousemove", function(event,d) {
+            Tooltip.style("left", (event.pageX + 20) + "px")
+                .style("top", (event.pageY - 28) + "px");
+            })
           .on("mouseleave", function(d) {
+            Tooltip.transition()
+                .duration(200)
+                .style("opacity", 0);
             d3.select(this)
               .transition()
               .duration(100)
@@ -263,17 +297,44 @@ function updateSlopeGraph(gender, goals, combinations, ageGap, ageOGap, attr, si
         // For each dimension, I build a linear scale. I store all in a y object
         const y = {}
         for (i in dimensions) {
-            name = dimensions[i]
-            y[name] = d3.scaleLinear()
-            .domain([18,43])
-            .range([heightSmaller-9, 7])
+            if (i == 0) {
+                name = dimensions[i]
+                y[name] = d3.scaleLinear()
+                    .domain([currentAge[0],currentAge[1]])
+                    .range([heightSmaller-9, 7])
+            } else {
+                name = dimensions[i]
+                y[name] = d3.scaleLinear()
+                    .domain([currentAgeO[0],currentAgeO[1]])
+                    .range([heightSmaller-9, 7])
+            }
         }
- 
+
+
          // Build the X scale -> it find the best position for each Y axis
          x = d3.scalePoint()
            .range([0, widthSmaller])
            .padding(0)
            .domain(dimensions);
+        
+        svg.selectAll("myAxis")
+           .data(dimensions).enter()
+           .append("g")
+
+           .attr("transform", function(d) { return "translate(" + x(d) + ")"; })
+           .each(function(d) { if (d == "age") { d3.select("#slopeYAxis").call(d3.axisLeft().scale(y[d]).tickSizeOuter(0)) } else {d3.select("#slopeYAxis2").call(d3.axisRight().scale(y[d]).tickSizeOuter(0)) }; })
+          
+        
+        var Tooltip = d3.select("body")
+           .append("div")
+           .style("opacity", 0)
+           .attr("class", "tooltip")
+           .style("background-color", "white")
+           .style("border", "solid")
+           .style("border-width", "1px")
+           .style("border-radius", "5px")
+           .style("height", "30px")
+           .style("width", "130px")
 
 
         svg
@@ -290,6 +351,35 @@ function updateSlopeGraph(gender, goals, combinations, ageGap, ageOGap, attr, si
                         .attr("stroke", (d) =>  lineColor(d.gender))
                         .attr("stroke-opacity", 0.5)
                         .attr("stroke-width", 1.5)
+                        .on("mouseover", function(event, d) {
+                            d3.select(this)
+                              .transition()
+                              .duration(200)
+                              .attr("stroke-width", 6)
+                              .attr("stroke-opacity", 1)
+                              .attr("stroke", (d) =>  lineColor(d.gender))
+                              Tooltip.transition()
+                              .duration(200)
+                              .style("opacity", .9);
+                              Tooltip.html(slopeText(d))
+                              .style("left", (event.pageX + 20) + "px")
+                              .style("top", (event.pageY - 28) + "px");
+                          })
+                          .on("mousemove", function(event,d) {
+                            Tooltip.style("left", (event.pageX + 20) + "px")
+                                .style("top", (event.pageY - 28) + "px");
+                            })
+                          .on("mouseleave", function(d) {
+                            Tooltip.transition()
+                                .duration(200)
+                                .style("opacity", 0);
+                            d3.select(this)
+                              .transition()
+                              .duration(100)
+                              .attr("stroke-width", 2)
+                              .attr("stroke-opacity", 0.5)
+                              .attr("stroke", (d) =>  lineColor(d.gender))
+                          });
                     lines
                         .transition()
                         .duration(1000)
@@ -310,6 +400,10 @@ function updateSlopeGraph(gender, goals, combinations, ageGap, ageOGap, attr, si
     });
 }
 
+function slopeText(d){
+    return "Age of Participant: " + d.age + "</br>" 
+    + "Age of Partner: " + d.age_o + "</br>";
+}
 
 /**age
  * ===================================================================================
@@ -438,8 +532,6 @@ function createParallelCoordinates(id){
             .style("height", "85px")
             .style("width", "130px")
 
-        
-
         // Draw the lines
         svg
           .selectAll("myPath")
@@ -457,7 +549,7 @@ function createParallelCoordinates(id){
               .duration(200)
               .attr("stroke-width", 6)
               .attr("stroke-opacity", 1)
-              .attr("stroke", "red")
+              .attr("stroke",  (d) =>  lineColor(d.gender))
             Tooltip.transition()
               .duration(200)
               .style("opacity", .9);
@@ -766,6 +858,16 @@ function updateParallelCoordinates(gender, goals, combinations, ageGap, ageOGap,
           .padding(0)
           .domain(dimensions);
         
+        var Tooltip = d3.select("body")
+          .append("div")
+          .style("opacity", 0)
+          .attr("class", "tooltip")
+          .style("background-color", "white")
+          .style("border", "solid")
+          .style("border-width", "1px")
+          .style("border-radius", "5px")
+          .style("height", "85px")
+          .style("width", "130px")
 
         svg
             .selectAll("path.myPath")
@@ -780,6 +882,35 @@ function updateParallelCoordinates(gender, goals, combinations, ageGap, ageOGap,
                         .attr("stroke", (d) =>  lineColor(d.gender))
                         .attr("stroke-opacity", 0.5)
                         .attr("stroke-width", 2)
+                        .on("mouseover", function(event,d) {
+                            d3.select(this)
+                              .transition()
+                              .duration(200)
+                              .attr("stroke-width", 6)
+                              .attr("stroke-opacity", 1)
+                              .attr("stroke",  (d) =>  lineColor(d.gender))
+                            Tooltip.transition()
+                              .duration(200)
+                              .style("opacity", .9);
+                            Tooltip.html(parallelText(d))
+                              .style("left", (event.pageX + 20) + "px")
+                              .style("top", (event.pageY - 28) + "px");
+                        })
+                        .on("mousemove", function(event,d) {
+                            Tooltip.style("left", (event.pageX + 20) + "px")
+                                .style("top", (event.pageY - 28) + "px");
+                        })
+                        .on("mouseout", function(d) {
+                            Tooltip.transition()
+                                .duration(200)
+                                .style("opacity", 0);
+                            d3.select(this)
+                            .transition()
+                            .duration(100)
+                            .attr("stroke-width", 1.5)
+                            .attr("stroke-opacity", 0.5)
+                            .attr("stroke", (d) =>  lineColor(d.gender))
+                        })
                     lines
                         .transition()
                         .duration(3000)
@@ -1569,7 +1700,6 @@ function updateBarOpacity(){
           })
           .attr("opacity", 0.3);
     } else {
-        console.log(":)")
         d3.selectAll(".barItemValue").attr("opacity", 1.0);
     }
 }

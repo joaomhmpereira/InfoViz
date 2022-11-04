@@ -59,6 +59,7 @@ div.tooltip {
 	height: 52vh; 
 	border-radius: 15px;
 	box-shadow: 5px 5px #888888;
+	background-color: #ffffff;
  
 }
 
@@ -77,6 +78,7 @@ div.tooltip {
 	height: 39.5vh;  
 	border-radius: 15px;
 	box-shadow: 5px 5px #888888;
+	background-color: #ffffff;
 }
 
 #chart2svg{
@@ -95,6 +97,7 @@ div.tooltip {
 	height: 39.5vh;
 	border-radius: 15px;
 	box-shadow: 5px 5px #888888;
+	background-color: #ffffff;
 
 }
 
@@ -113,6 +116,7 @@ div.tooltip {
 	height: 39.5vh;
 	border-radius: 15px;
 	box-shadow: 5px 5px #888888;
+	background-color: #ffffff;
 
 }
 
@@ -130,6 +134,7 @@ div.tooltip {
 	width: 29vw;
 	height: 39.5vh; 
 	box-shadow: 5px 5px #888888;
+	background-color: #ffffff;
 
 } 
 
