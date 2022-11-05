@@ -317,14 +317,36 @@ function updateSlopeGraph(gender, goals, combinations, ageGap, ageOGap, attr, si
            .padding(0)
            .domain(dimensions);
         
-        svg.selectAll("myAxis")
-           .data(dimensions).enter()
-           .append("g")
+        if (currentAge[1]-currentAge[0] <= 7 && currentAgeO[1]-currentAgeO[0] <= 7 ) {
+            svg.selectAll("myAxis")
+                .data(dimensions).enter()
+                .append("g")
+                .attr("transform", function(d) { return "translate(" + x(d) + ")"; })
+                .each(function(d) { if (d == "age") { d3.select("#slopeYAxis").call(d3.axisLeft().scale(y[d]).tickSizeOuter(0).ticks(currentAge[1]-currentAge[0])) } else {d3.select("#slopeYAxis2").call(d3.axisRight().scale(y[d]).tickSizeOuter(0).ticks(currentAgeO[1]-currentAgeO[0])) }; })
+        } else if (currentAge[1]-currentAge[0] <= 7 && currentAgeO[1]-currentAgeO[0] > 7) {
+            svg.selectAll("myAxis")
+                .data(dimensions).enter()
+                .append("g")
 
-           .attr("transform", function(d) { return "translate(" + x(d) + ")"; })
-           .each(function(d) { if (d == "age") { d3.select("#slopeYAxis").call(d3.axisLeft().scale(y[d]).tickSizeOuter(0)) } else {d3.select("#slopeYAxis2").call(d3.axisRight().scale(y[d]).tickSizeOuter(0)) }; })
-          
-        
+                .attr("transform", function(d) { return "translate(" + x(d) + ")"; })
+                .each(function(d) { if (d == "age") { d3.select("#slopeYAxis").call(d3.axisLeft().scale(y[d]).tickSizeOuter(0).ticks(currentAge[1]-currentAge[0])) } else {d3.select("#slopeYAxis2").call(d3.axisRight().scale(y[d]).tickSizeOuter(0)) }; })
+        } else if (currentAge[1]-currentAge[0] > 7 && currentAgeO[1]-currentAgeO[0] <= 7) {
+            svg.selectAll("myAxis")
+                .data(dimensions).enter()
+                .append("g")
+
+                .attr("transform", function(d) { return "translate(" + x(d) + ")"; })
+                .each(function(d) { if (d == "age") { d3.select("#slopeYAxis").call(d3.axisLeft().scale(y[d]).tickSizeOuter(0)) } else {d3.select("#slopeYAxis2").call(d3.axisRight().scale(y[d]).tickSizeOuter(0).ticks(currentAgeO[1]-currentAgeO[0])) }; })
+        } else if (currentAge[1]-currentAge[0] > 7 && currentAgeO[1]-currentAgeO[0] > 7) {
+            svg.selectAll("myAxis")
+                .data(dimensions).enter()
+                .append("g")
+
+                .attr("transform", function(d) { return "translate(" + x(d) + ")"; })
+                .each(function(d) { if (d == "age") { d3.select("#slopeYAxis").call(d3.axisLeft().scale(y[d]).tickSizeOuter(0)) } else {d3.select("#slopeYAxis2").call(d3.axisRight().scale(y[d]).tickSizeOuter(0)) }; })
+        }
+
+    
         var Tooltip = d3.select("body")
            .append("div")
            .style("opacity", 0)
