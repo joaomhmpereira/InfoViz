@@ -4,12 +4,26 @@
 	height: 95vh;
 }
 
+.title{
+	position: relative;
+	top: 3vh;
+	left: 3vw;
+	color: whitesmoke;
+	font-weight: bold; 
+	font-family: Avantgarde, TeX Gyre Adventor, URW Gothic L, sans-serif; 
+	text-align: left;
+}
+
 body {
-	background: linear-gradient(to top right, #ffccff 0%, #ccffff 100%);
+	background: rgb(161,34,150);
+	background: linear-gradient(28deg, rgba(161,34,150,0.7049020291710435) 25%, rgba(27,27,142,0.6516807406556373) 50%, rgba(0,212,255,0.5900560907956933) 97%);    
 }
 
 .chart {
 	border: 1px solid #000; 
+	box-shadow: 10px 12px 21px 0px rgba(0,0,0,0.41);
+	-webkit-box-shadow: 10px 12px 21px 0px rgba(0,0,0,0.41);
+	-moz-box-shadow: 10px 12px 21px 0px rgba(0,0,0,0.41);
 }
 
 div.tooltip {
@@ -58,9 +72,7 @@ div.tooltip {
 	width: 64vw;
 	height: 52vh; 
 	border-radius: 15px;
-	box-shadow: 5px 5px #888888;
-	background-color: #ffffff;
- 
+	background-color: whitesmoke;
 }
 
 #chart1svg {
@@ -77,8 +89,8 @@ div.tooltip {
 	width: 32vw;
 	height: 39.5vh;  
 	border-radius: 15px;
-	box-shadow: 5px 5px #888888;
-	background-color: #ffffff;
+	background-color: whitesmoke;
+	
 }
 
 #chart2svg{
@@ -96,8 +108,8 @@ div.tooltip {
 	width: 40vw;
 	height: 39.5vh;
 	border-radius: 15px;
-	box-shadow: 5px 5px #888888;
-	background-color: #ffffff;
+	background-color: whitesmoke;
+	
 
 }
 
@@ -115,8 +127,8 @@ div.tooltip {
 	width: 40vw;
 	height: 39.5vh;
 	border-radius: 15px;
-	box-shadow: 5px 5px #888888;
-	background-color: #ffffff;
+	background-color: whitesmoke;
+	
 
 }
 
@@ -133,43 +145,11 @@ div.tooltip {
 	left: 69vw;
 	width: 29vw;
 	height: 39.5vh; 
-	box-shadow: 5px 5px #888888;
-	background-color: #ffffff;
+	background-color: whitesmoke;
+	
 
 } 
 
 text, p {
     font-family: 'Inter', sans-serif;
-}
-
-.myButtons {
-    position: absolute;
-    top: 6vh;
-	right: -1.5vw;
-    transform: translate(-50%, -50%);
-}
-
-.btn {
-	box-shadow:inset 1px 1px 0px 0px #ffffff;
-	background:linear-gradient(to bottom, #f9f9f9 5%, #e9e9e9 100%);
-	background-color:#f9f9f9;
-	border-radius:20px;
-	border:1px solid #dcdcdc;
-	display:inline-block;
-	cursor:pointer;
-	color:#666666;
-	font-family:'Inter', sans-serif;
-	font-size:12px;
-	font-weight:bold;
-	padding:12px 30px;
-	text-decoration:none;
-	text-shadow:0px 0px 0px #ffffff;
-}
-.btn:hover {
-	background:linear-gradient(to bottom, #e9e9e9 5%, #f9f9f9 100%);
-	background-color:#e9e9e9;
-}
-.btn:active {
-	position:relative;
-	top:1px;
 }

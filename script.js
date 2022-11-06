@@ -19,6 +19,7 @@ var currentSinc = [1, 10];
 var currentIntel = [1, 10];
 var currentFun = [1, 10];
 var currentShar = [1, 10];
+var count = 0;
 
 function init(){
     createParallelCoordinates("#chart1svg")
@@ -562,7 +563,8 @@ function createParallelCoordinates(id){
         data = filterDatav2(data)
         //console.log("========================")
 
-        var dimensions = Object.keys(data[0]).filter(function(d) { return d == "attr_o" || d == "sinc_o" || d == "intel_o" || d == "amb_o" || d == "fun_o" || d == "shar_o" });
+        //var dimensions = Object.keys(data[0]).filter(function(d) { return d == "attr_o" || d == "sinc_o" || d == "intel_o" || d == "amb_o" || d == "fun_o" || d == "shar_o" });
+        var dimensions = ["attr_o", "sinc_o", "intel_o", "amb_o", "fun_o", "shar_o"];
         
         //calculate average values for male and female
         var averageValues = calculateAverageValues(data);
@@ -595,7 +597,7 @@ function createParallelCoordinates(id){
             .style("border", "solid")
             .style("border-width", "1px")
             .style("border-radius", "5px")
-            .style("height", "85px")
+            .style("height", "90px")
             .style("width", "130px")
 
         // Draw the lines
@@ -655,20 +657,31 @@ function createParallelCoordinates(id){
         //svg.append("text").attr("x", widthBigger).attr("y", 40).text(".. in a partner").style("font-size", "20px").attr("alignment-baseline","middle")
         svg.append("text").attr("x", widthBigger/3).attr("y", -5).text("Importance of .. in a partner").style("font-size", "20px").attr("font-weight", "light")
 
-
-          
-    
         //Legend
         svg.append("circle").attr("cx",widthBigger - 50).attr("cy",130).attr("r", 6).style("fill", "#74c7fd")
         .on("click", () => {
             currentGender = 0;
             callUpdates();
         })
+        .on("mouseover", function() {
+            d3.select(this).style("fill", "#3b7a57")
+        })
+        .on("mouseout", function() {
+            d3.select(this).style("fill", "#74c7fd")
+        })
+
         svg.append("circle").attr("cx",widthBigger - 50).attr("cy",160).attr("r", 6).style("fill", "#fb74fd")
         .on("click", () => {
             currentGender = 1;
             callUpdates();
         })
+        .on("mouseover", function() {
+            d3.select(this).style("fill", "#3b7a57")
+        })
+        .on("mouseout", function() {
+            d3.select(this).style("fill", "#fb74fd")
+        })
+
         svg.append("circle").attr("cx",widthBigger - 50).attr("cy",190).attr("r", 6).style("fill", "#145edf")
         svg.append("circle").attr("cx",widthBigger - 50).attr("cy",220).attr("r", 6).style("fill", "#cb06cb")
         svg.append("circle").attr("cx",widthBigger - 50).attr("cy",250).attr("r", 6).style("fill", "#808080")
@@ -676,12 +689,30 @@ function createParallelCoordinates(id){
             currentGender = -1;
             callUpdates();
         })
+        .on("mouseover", function() {
+            d3.select(this).style("fill", "#3b7a57")
+        })
+        .on("mouseout", function() {
+            d3.select(this).style("fill", "#808080")
+        })
 
         svg.append("text").attr("x", widthBigger - 30).attr("y", 135).text("Male participants").style("font-size", "15px").attr("alignment-baseline","middle")
+        .on("click", () => {
+            currentGender = 0;
+            callUpdates();
+        })
         svg.append("text").attr("x", widthBigger - 30).attr("y", 165).text("Female participants").style("font-size", "15px").attr("alignment-baseline","middle")
+        .on("click", () => {
+            currentGender = 1;
+            callUpdates();
+        })
         svg.append("text").attr("x", widthBigger - 30).attr("y", 195).text("Average Values Male").style("font-size", "15px").attr("alignment-baseline","middle")
         svg.append("text").attr("x", widthBigger - 30).attr("y", 225).text("Average Values Female").style("font-size", "15px").attr("alignment-baseline","middle")
         svg.append("text").attr("x", widthBigger - 30).attr("y", 255).text("All participants").style("font-size", "15px").attr("alignment-baseline","middle")
+        .on("click", () => {
+            currentGender = -1;
+            callUpdates();
+        })
         
 
         // Draw the axis:
@@ -910,7 +941,7 @@ function updateParallelCoordinates(gender, goals, combinations, ageGap, ageOGap,
         data = filterDatav2(data);
         //console.log("==============")
         var averageValues = calculateAverageValues(data);
-        //console.log(averageValues);
+        console.log(averageValues);
 
         if (data.length == 0) {
             alert("Combination not found in new data")
@@ -918,7 +949,8 @@ function updateParallelCoordinates(gender, goals, combinations, ageGap, ageOGap,
         }
 
 
-        var dimensions = Object.keys(data[0]).filter(function(d) { return d == "attr_o" || d == "sinc_o" || d == "intel_o" || d == "amb_o" || d == "fun_o" || d == "shar_o" });
+        //var dimensions = Object.keys(data[0]).filter(function(d) { return d == "attr_o" || d == "sinc_o" || d == "intel_o" || d == "amb_o" || d == "fun_o" || d == "shar_o" });
+        var dimensions = ["attr_o", "sinc_o", "intel_o", "amb_o", "fun_o", "shar_o"];
         
         // The path function take a row of the csv as input, and return x and y coordinates of the line to draw for this raw.
         function path(d) {
