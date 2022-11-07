@@ -43,14 +43,6 @@ window.onclick = function(event){
     }
     //console.log("============")
 }
-
-
-/**
- * CASOS A TRATAR:
- * - Quando já temos pouca data e selecionamos uma bubble/barra p.ex pode não haver matches e o slopegraph nao atualiza
- * 
- */
-
 /**
  * ===================================================================================
  * ---------------------------------------SLOPE---------------------------------------
