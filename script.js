@@ -402,7 +402,7 @@ function updateSlopeGraph(gender, goals, combinations, ageGap, ageOGap, attr, si
                     //console.log("update")
                     update
                         .transition()
-                        .duration(1500)
+                        .duration(1000)
                         .attr("d",  path)
                 },
                 (exit) => {
@@ -601,8 +601,8 @@ function createParallelCoordinates(id){
           .attr("class", "myPath")
           .attr("fill", "none")
           .attr("stroke", (d) =>  lineColor(d.gender))
-          .attr("stroke-opacity", 0.5)
-          .attr("stroke-width", 1.5)
+          .attr("stroke-opacity", 0.8)
+          .attr("stroke-width", 1)
           .on("mouseover", function(event,d) {
             d3.select(this)
               .transition()
@@ -628,8 +628,8 @@ function createParallelCoordinates(id){
             d3.select(this)
             .transition()
             .duration(100)
-            .attr("stroke-width", 1.5)
-            .attr("stroke-opacity", 0.5)
+            .attr("stroke-width", 1)
+            .attr("stroke-opacity", 0.8)
             .attr("stroke", (d) =>  lineColor(d.gender))
         })
 
@@ -642,7 +642,8 @@ function createParallelCoordinates(id){
             .attr("fill", "none")
             .attr("stroke", (d) =>  {if (d.id == 1) {return "#145edf"} else {return "#cb06cb"}})
             .attr("stroke-opacity", 0.8)
-            .attr("stroke-width", 4)
+            .attr("stroke-width", 7)
+            .attr("stroke-dasharray", ("3, 3"))
 
         
         //svg.append("text").attr("x", widthBigger).attr("y", 20).text("Importance of").style("font-size", "20px").attr("alignment-baseline","middle")
@@ -929,11 +930,11 @@ function updateParallelCoordinates(gender, goals, combinations, ageGap, ageOGap,
 
         const svg = d3.select("#gParallel");
 
-        //console.log("=====DATA=====")
+        console.log("=====DATA=====")
         data = filterDatav2(data);
-        //console.log("==============")
+        console.log("==============")
         var averageValues = calculateAverageValues(data);
-        console.log(averageValues);
+        //console.log(averageValues);
 
         if (data.length == 0) {
             alert("Combination not found in new data")
@@ -987,8 +988,8 @@ function updateParallelCoordinates(gender, goals, combinations, ageGap, ageOGap,
                         .attr("d",  x(0))
                         .attr("fill", "none")
                         .attr("stroke", (d) =>  lineColor(d.gender))
-                        .attr("stroke-opacity", 0.5)
-                        .attr("stroke-width", 2)
+                        .attr("stroke-opacity", 0.8)
+                        .attr("stroke-width", 1)
                         .on("mouseover", function(event,d) {
                             d3.select(this)
                               .transition()
@@ -1014,19 +1015,19 @@ function updateParallelCoordinates(gender, goals, combinations, ageGap, ageOGap,
                             d3.select(this)
                             .transition()
                             .duration(100)
-                            .attr("stroke-width", 1.5)
-                            .attr("stroke-opacity", 0.5)
+                            .attr("stroke-width", 1)
+                            .attr("stroke-opacity", 0.8)
                             .attr("stroke", (d) =>  lineColor(d.gender))
                         })
                     lines
                         .transition()
-                        .duration(3000)
+                        .duration(1500)
                         .attr("d",  path)
                 }, 
                 (update) => {
                     update
                         .transition()
-                        .duration(3000)
+                        .duration(1500)
                         .attr("d",  path)
                 },
                 (exit) => {
@@ -1046,7 +1047,14 @@ function updateParallelCoordinates(gender, goals, combinations, ageGap, ageOGap,
                         .attr("fill", "none")
                         .attr("stroke", (d) =>  {if (d.id == 1) {return "#145edf"} else {return "#cb06cb"}})
                         .attr("stroke-opacity", 0.8)
-                        .attr("stroke-width", 4)
+                        .attr("stroke-width", 7)
+                        .attr("stroke-dasharray", ("3, 3"))
+
+
+                    lines
+                        .transition()
+                        .duration(1500)
+                        .attr("d",  path)
                 },
                 (update) => {
                     update
