@@ -498,6 +498,15 @@ function parallelText(d){
     + "Shared Interests: " + d.shar_o;
 }
 
+function parallelAvgText(d){
+    return "Avg. Attractiveness: " + d.attr_o + "</br>" 
+    + "Avg. Sinceriness: " + d.sinc_o + "</br>"
+    + "Avg. Intelligence: " + d.intel_o + "</br>" 
+    + "Avg. Ambition: " + d.amb_o + "</br>" 
+    + "Avg. Funiness: " + d.fun_o + "</br>" 
+    + "Avg. Shared Interests: " + d.shar_o;
+}
+
 function calculateAverageValues(data){
     var maleData = data.filter(function(elem){
         return elem.gender == 1;
@@ -590,7 +599,7 @@ function createParallelCoordinates(id){
             .style("border-width", "1px")
             .style("border-radius", "5px")
             .style("height", "90px")
-            .style("width", "130px")
+            .style("width", "150px")
 
         // Draw the lines
         svg
@@ -606,12 +615,12 @@ function createParallelCoordinates(id){
           .on("mouseover", function(event,d) {
             d3.select(this)
               .transition()
-              .duration(200)
+              .duration(50)
               .attr("stroke-width", 6)
               .attr("stroke-opacity", 1)
               .attr("stroke",  (d) =>  lineColor(d.gender))
             Tooltip.transition()
-              .duration(200)
+              .duration(100)
               .style("opacity", .9);
             Tooltip.html(parallelText(d))
               .style("left", (event.pageX + 20) + "px")
@@ -627,7 +636,7 @@ function createParallelCoordinates(id){
                 .style("opacity", 0);
             d3.select(this)
             .transition()
-            .duration(100)
+            .duration(50)
             .attr("stroke-width", 1)
             .attr("stroke-opacity", 0.8)
             .attr("stroke", (d) =>  lineColor(d.gender))
@@ -644,7 +653,32 @@ function createParallelCoordinates(id){
             .attr("stroke-opacity", 0.8)
             .attr("stroke-width", 7)
             .attr("stroke-dasharray", ("3, 3"))
-
+            .on("mouseover", function(event,d) {
+                d3.select(this)
+                  .transition()
+                  .duration(100)
+                  .attr("stroke-width", 10)
+                Tooltip.transition()
+                  .duration(100)
+                  .style("opacity", .9);
+                Tooltip.html(parallelAvgText(d))
+                  .style("left", (event.pageX + 20) + "px")
+                  .style("top", (event.pageY - 28) + "px");
+            })
+            .on("mousemove", function(event,d) {
+                Tooltip.style("left", (event.pageX + 20) + "px")
+                    .style("top", (event.pageY - 28) + "px");
+            })
+            .on("mouseout", function(d) {
+                Tooltip.transition()
+                    .duration(200)
+                    .style("opacity", 0);
+                d3.select(this)
+                .transition()
+                .duration(100)
+                .attr("stroke-width", 7)
+                .attr("stroke-opacity", 0.8)
+            })
         
         //svg.append("text").attr("x", widthBigger).attr("y", 20).text("Importance of").style("font-size", "20px").attr("alignment-baseline","middle")
         //svg.append("text").attr("x", widthBigger).attr("y", 40).text(".. in a partner").style("font-size", "20px").attr("alignment-baseline","middle")
@@ -993,12 +1027,12 @@ function updateParallelCoordinates(gender, goals, combinations, ageGap, ageOGap,
                         .on("mouseover", function(event,d) {
                             d3.select(this)
                               .transition()
-                              .duration(200)
+                              .duration(50)
                               .attr("stroke-width", 6)
                               .attr("stroke-opacity", 1)
                               .attr("stroke",  (d) =>  lineColor(d.gender))
                             Tooltip.transition()
-                              .duration(200)
+                              .duration(100)
                               .style("opacity", .9);
                             Tooltip.html(parallelText(d))
                               .style("left", (event.pageX + 20) + "px")
@@ -1010,11 +1044,11 @@ function updateParallelCoordinates(gender, goals, combinations, ageGap, ageOGap,
                         })
                         .on("mouseout", function(d) {
                             Tooltip.transition()
-                                .duration(200)
+                                .duration(100)
                                 .style("opacity", 0);
                             d3.select(this)
                             .transition()
-                            .duration(100)
+                            .duration(50)
                             .attr("stroke-width", 1)
                             .attr("stroke-opacity", 0.8)
                             .attr("stroke", (d) =>  lineColor(d.gender))
@@ -1049,7 +1083,32 @@ function updateParallelCoordinates(gender, goals, combinations, ageGap, ageOGap,
                         .attr("stroke-opacity", 0.8)
                         .attr("stroke-width", 7)
                         .attr("stroke-dasharray", ("3, 3"))
-
+                        .on("mouseover", function(event,d) {
+                            d3.select(this)
+                              .transition()
+                              .duration(50)
+                              .attr("stroke-width", 10)
+                            Tooltip.transition()
+                              .duration(100)
+                              .style("opacity", .9);
+                            Tooltip.html(parallelAvgText(d))
+                              .style("left", (event.pageX + 20) + "px")
+                              .style("top", (event.pageY - 28) + "px");
+                        })
+                        .on("mousemove", function(event,d) {
+                            Tooltip.style("left", (event.pageX + 20) + "px")
+                                .style("top", (event.pageY - 28) + "px");
+                        })
+                        .on("mouseout", function(d) {
+                            Tooltip.transition()
+                                .duration(100)
+                                .style("opacity", 0);
+                            d3.select(this)
+                            .transition()
+                            .duration(50)
+                            .attr("stroke-width", 7)
+                            .attr("stroke-opacity", 0.8)
+                        })
 
                     lines
                         .transition()
