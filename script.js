@@ -512,9 +512,16 @@ function calculateAverageValues(data){
         return elem.gender == 1;
     })
 
+    //console.log("=== male data ===")
+    //console.log(maleData);
+
     var femaleData = data.filter(function(elem){
         return elem.gender == 0;
     })
+
+    //console.log("=== female data ===")
+    //console.log(femaleData);
+
 
     var toReturn = [];
 
@@ -934,39 +941,37 @@ function updateParallelCoordinates(gender, goals, combinations, ageGap, ageOGap,
             //goals are specified
             if(goals.length != 0){
                 data = data.filter(function(elem){
-                    return elem.gender == gender && goals.includes(elem.goal) && elem.match == 1;
+                    return elem.gender == gender && goals.includes(elem.goal);
                 })
             } if(combinations.length != 0){
                 data = data.filter(function(elem){
-                    return elem.gender == gender && checkBubbles(elem, combinations) && elem.match == 1;
+                    return elem.gender == gender && checkBubbles(elem, combinations);
                 })
             }  else { //goals are not specified
                 data = data.filter(function(elem){
-                    return elem.gender == gender && elem.match == 1;
+                    return elem.gender == gender;
                 })
             }
         } else { //gender is not specified
             //goals are specified
             if(goals.length != 0){
                 data = data.filter(function(elem){
-                    return goals.includes(elem.goal) && elem.match == 1;
+                    return goals.includes(elem.goal);
                 })
             } if(combinations.length != 0){
                 data = data.filter(function(elem){
-                    return checkBubbles(elem, combinations) && elem.match == 1;
+                    return checkBubbles(elem, combinations);
                 })
             } else { //goals and gender are not specified
-                data = data.filter(function(elem){
-                    return elem.match == 1;
-                })
+                data = data
             }
         }
 
         const svg = d3.select("#gParallel");
 
-        console.log("=====DATA=====")
+        //console.log("=====DATA=====")
         data = filterDatav2(data);
-        console.log("==============")
+        //console.log("==============")
         var averageValues = calculateAverageValues(data);
         //console.log(averageValues);
 
