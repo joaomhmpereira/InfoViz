@@ -1,12 +1,29 @@
 .charts {
 	position: relative;
-	/*border: 2px solid red;*/
 	margin-top: 1%;
 	height: 95vh;
 }
 
+.title{
+	position: relative;
+	top: 3vh;
+	left: 3vw;
+	color: whitesmoke;
+	font-weight: bold; 
+	font-family: Avantgarde, TeX Gyre Adventor, URW Gothic L, sans-serif; 
+	text-align: left;
+}
+
+body {
+	background: rgb(161,34,150);
+	background: linear-gradient(28deg, rgba(161,34,150,0.7049020291710435) 25%, rgba(27,27,142,0.6516807406556373) 50%, rgba(0,212,255,0.5900560907956933) 97%);    
+}
+
 .chart {
 	border: 1px solid #000; 
+	box-shadow: 10px 12px 21px 0px rgba(0,0,0,0.41);
+	-webkit-box-shadow: 10px 12px 21px 0px rgba(0,0,0,0.41);
+	-moz-box-shadow: 10px 12px 21px 0px rgba(0,0,0,0.41);
 }
 
 div.tooltip {
@@ -15,8 +32,8 @@ div.tooltip {
 	width: 120px;
 	height: 28px;
 	padding: 2px;
-	font: 12px sans-serif;
-	background: lightsteelblue;
+	font-family: 'Inter', sans-serif;;
+	font-size: 12px;
 	border: 0px;
 	border-radius: 8px;
 	pointer-events: none;
@@ -46,20 +63,34 @@ div.tooltip {
 	height: 100%;
 }
 
+/* Parallel Coordinates */
 #chart1 {
 	/*border: 0px none;*/
 	position: absolute;
-	top: 10px;
-	left: 10px;
-	width: 68vw;
+	top: 7.0px;
+	left: 34vw;
+	width: 64vw;
 	height: 52vh; 
+	border-radius: 15px;
+	background-color: whitesmoke;
 }
+
+#chart1svg {
+	position: absolute;
+	top: 40px;
+	left: 10px;
+}
+
+/* Bubble Chart */
 #chart2 {
 	position: relative;
-	top: 13.5vh;
-	left: 69vw;
-	width: 29vw;
+	top: 5.5vh;
+	left: 0.5vw;
+	width: 32vw;
 	height: 39.5vh;  
+	border-radius: 15px;
+	background-color: whitesmoke;
+	
 }
 
 #chart2svg{
@@ -68,21 +99,37 @@ div.tooltip {
 	right: 40px;
 }
 
+/* Slopegraph */
 #chart3 { 
 	/*border: 0px none;*/
 	position: absolute;
 	bottom: 10px;
-	left: 10px;
-	width: 37vw;
+	left: 2vw;
+	width: 40vw;
 	height: 39.5vh;
+	border-radius: 15px;
+	background-color: whitesmoke;
+	
+
 }
 
+#chart3svg {
+	position: absolute;
+	top: 30px;
+	left: 60px;
+}
+
+/* Bar Chart */
 #chart4 {
 	position: absolute;
 	bottom: 10px;
-	left: 38vw;
-	width: 30.5vw;
-	height: 39.5vh; 
+	right: 10vw;
+	width: 40vw;
+	height: 39.5vh;
+	border-radius: 15px;
+	background-color: whitesmoke;
+	
+
 }
 
 #chart4svg{
@@ -98,40 +145,11 @@ div.tooltip {
 	left: 69vw;
 	width: 29vw;
 	height: 39.5vh; 
+	background-color: whitesmoke;
+	
+
 } 
 
 text, p {
     font-family: 'Inter', sans-serif;
-}
-
-.myButtons {
-    position: absolute;
-    top: 6vh;
-	right: -1.5vw;
-    transform: translate(-50%, -50%);
-}
-
-.btn {
-	box-shadow:inset 1px 1px 0px 0px #ffffff;
-	background:linear-gradient(to bottom, #f9f9f9 5%, #e9e9e9 100%);
-	background-color:#f9f9f9;
-	border-radius:20px;
-	border:1px solid #dcdcdc;
-	display:inline-block;
-	cursor:pointer;
-	color:#666666;
-	font-family:'Inter', sans-serif;
-	font-size:12px;
-	font-weight:bold;
-	padding:12px 30px;
-	text-decoration:none;
-	text-shadow:0px 0px 0px #ffffff;
-}
-.btn:hover {
-	background:linear-gradient(to bottom, #e9e9e9 5%, #f9f9f9 100%);
-	background-color:#e9e9e9;
-}
-.btn:active {
-	position:relative;
-	top:1px;
 }

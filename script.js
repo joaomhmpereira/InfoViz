@@ -1,35 +1,1136 @@
 const margin = { top: 20, right: 30, bottom: 40, left: 100 };
-const width = document.documentElement.clientWidth/3.8 - margin.left - margin.right;
-const height = document.documentElement.clientHeight/2.6 - margin.top - margin.bottom;
+const clientWidth = document.documentElement.clientWidth;
+const clientHeight = document.documentElement.clientHeight;
+const widthSmaller = clientWidth/3.8 - margin.left - margin.right;
+const heightSmaller = clientHeight/2.6 - margin.top - margin.bottom;
+const widthBigger = clientWidth/1.8 - margin.left - margin.right;
+const heightBigger = clientHeight/2 - margin.top - margin.bottom;
 
 var currentSelectedBars = [];
 var currentSelectedBubbles = [];
 var bubbleCombinations = [];
+var parallelCoordsSliders = [];
 var currentGender = -1;
+var currentAge = [18,42];
+var currentAgeO = [18,42];
+var currentAttr = [1, 10];
+var currentAmb = [1, 10];
+var currentSinc = [1, 10];
+var currentIntel = [1, 10];
+var currentFun = [1, 10];
+var currentShar = [1, 10];
+var count = 0;
 
 function init(){
-    //createParallelCoordinates("#chart1");
+    createParallelCoordinates("#chart1svg")
     createBubbleChart("#chart2svg");
-    
+    createSlopeGraph("#chart3svg");
     createGoalBarChart("#chart4svg");
-    d3.select("#male").on("click", () => {
-        //updateParallelCoordinates(0);
-        currentGender = 0;
-        updateBubbleChart(currentGender, currentSelectedBars);
-        updateGoalBarChart(currentGender, bubbleCombinations);
+}
+
+window.onclick = function(event){
+    //console.log("=== CLICK ===")
+    var point = d3.pointer(event);
+    //console.log(point[0]);
+    var x = point[0]
+    var y = point[1]
+    //console.log("x: " + x + " y: " + y)
+    if (checkOutsideClickBar(x,y) == 1) {
+        onClickOutsideBar(currentGender);
+    }
+    if (checkOutsideClickBubble(x,y) == 1) {
+        onClickOutsideBubble(currentGender);
+    }
+    //console.log("============")
+}
+/**
+ * ===================================================================================
+ * ---------------------------------------SLOPE---------------------------------------
+ * ===================================================================================
+ */
+
+function callUpdates(){
+    updateBubbleChart(currentGender, currentSelectedBars, currentAge, currentAgeO, currentAttr, currentSinc, currentIntel, currentAmb, currentFun, currentShar);
+    updateGoalBarChart(currentGender, bubbleCombinations, currentAge, currentAgeO, currentAttr, currentSinc, currentIntel, currentAmb, currentFun, currentShar);
+    updateSlopeGraph(currentGender, currentSelectedBars, bubbleCombinations, currentAge, currentAgeO, currentAttr, currentSinc, currentIntel, currentAmb, currentFun, currentShar);
+    updateParallelCoordinates(currentGender, currentSelectedBars, bubbleCombinations, currentAge, currentAgeO, currentAttr, currentSinc, currentIntel, currentAmb, currentFun, currentShar);
+}
+
+function createSlopeGraph(id){
+    const svg = d3
+        .select(id)
+        .attr("width", widthSmaller*1.4 + margin.left + margin.right + 200)
+        .attr("height", widthSmaller + margin.top + margin.bottom)
+        .append("g")
+        .attr("id", "gSlope")
+        .attr("transform", `translate(${margin.left}, ${margin.top })`);
+
+    d3.json("data.json").then(function (data) {
+        data = data.filter(function(d){
+            return d.age != -3 && d.age_o != -3 && d.match == 1
+        })
+        var dimensions = ["age","age_o"]
+
+        // For each dimension, I build a linear scale. I store all in a y object
+        const y = {}
+        for (i in dimensions) {
+            name = dimensions[i]
+            y[name] = d3.scaleLinear()
+            .domain([18,42])
+            .range([heightSmaller-9, 7])
+        }
+
+        // Build the X scale -> it find the best position for each Y axis
+        x = d3.scalePoint()
+          .range([0, widthSmaller])
+          .padding(0)
+          .domain(dimensions);
+
+        // The path function take a row of the csv as input, and return x and y coordinates of the line to draw for this raw.
+        function path(d) {
+            return d3.line()(dimensions.map(function(p) { return [x(p), y[p](d[p])];  }));
+        }
+
+        // Draw the axis:
+        svg.selectAll("myAxis")
+            .data(dimensions[0]).enter()
+            .append("g")
+            .attr("id", "slopeYAxis")
+            .attr("transform", function(d) { return "translate(" + x("age") + ")"; })
+            d3.select("#slopeYAxis").call(d3.axisLeft().scale(y["age"]).tickSizeOuter(0)) 
+            .append("text")
+            .style("text-anchor", "middle")
+            .attr("y", -6)
+            .text("age")
+            .style("fill", "black")
+        
+         // Draw the axis:
+        svg.selectAll("myAxis")
+            .data(dimensions[1]).enter()
+            .append("g")
+            .attr("id", "slopeYAxis2")
+            .attr("transform", function(d) { return "translate(" + x("age_o") + ")"; })
+            d3.select("#slopeYAxis2").call(d3.axisRight().scale(y["age_o"]).tickSizeOuter(0)) 
+            .append("text")
+            .style("text-anchor", "middle")
+            .attr("y", -6)
+            .text("age_o")
+            .style("fill", "black")
+        
+        var Tooltip = d3.select("body")
+            .append("div")
+            .style("opacity", 0)
+            .attr("class", "tooltip")
+            .style("background-color", "white")
+            .style("border", "solid")
+            .style("border-width", "1px")
+            .style("border-radius", "5px")
+            .style("height", "30px")
+            .style("width", "130px")
+
+        // Draw the lines
+        svg
+          .selectAll("mySlopePath")
+          .data(data, (d) => d.id)
+          .join("path")
+          .attr("d",  path)
+          .attr("class", "mySlopePath")
+          .attr("fill", "none")
+          .attr("stroke", (d) =>  lineColor(d.gender))
+          .attr("stroke-opacity", 0.5)
+          .attr("stroke-width", 1.5)
+
+          .on("mouseover", function(event, d) {
+            d3.select(this)
+              .transition()
+              .duration(200)
+              .attr("stroke-width", 6)
+              .attr("stroke-opacity", 1)
+              .attr("stroke", (d) =>  lineColor(d.gender))
+              Tooltip.transition()
+              .duration(200)
+              .style("opacity", .9);
+              Tooltip.html(slopeText(d))
+              .style("left", (event.pageX + 20) + "px")
+              .style("top", (event.pageY - 28) + "px");
+          })
+          .on("mousemove", function(event,d) {
+            Tooltip.style("left", (event.pageX + 20) + "px")
+                .style("top", (event.pageY - 28) + "px");
+            })
+          .on("mouseleave", function(d) {
+            Tooltip.transition()
+                .duration(200)
+                .style("opacity", 0);
+            d3.select(this)
+              .transition()
+              .duration(100)
+              .attr("stroke-width", 2)
+              .attr("stroke-opacity", 0.5)
+              .attr("stroke", (d) =>  lineColor(d.gender))
+          });
+
+        svg.append("text").attr("x", widthBigger/23).attr("y", -5).text("Ages Among Matches").style("font-size", "20px").attr("font-weight", "light");
+
+            
+        var sliderAge = d3
+            .sliderLeft()
+            .min(18)
+            .max(d3.max(data, (d) => d.age))
+            .width(200)
+            .height(heightSmaller-20)
+            .ticks(0)
+            .step(1)
+            .default([18, 55])
+            .fill('#1a4b8e')
+            .on('end',  val => {
+                currentAge = val;
+                callUpdates();
+            })
+            
+        
+        var sliderAgeO = d3
+            .sliderRight()
+            .min(18)
+            .max(d3.max(data, (d) => d.age_o))
+            .width(200)
+            .height(heightSmaller-20)
+            .ticks(0)
+            .step(1)
+            .default([18, 55])
+            .fill('#1a4b8e')
+            .on('end',  val => {
+                currentAgeO = val;
+                callUpdates();
+            })
+        
+        //console.log(y["age"](18) - y["age"](55))
+        x_pos = x("age") + 50;
+        var gAge = d3
+            .select(id)
+            .append('svg')
+            .attr('width', 200)
+            .attr('height', y["age"](18) - y["age"](55))
+            .append('g')
+            .attr('transform', 'translate('+ x_pos.toString() +',30)');
+        
+        x_pos = x("age_o") + 150;
+        var gAgeO = d3
+            .select(id)
+            .append('svg')
+            .attr('width', 600)
+            .attr('height', 450)
+            .append('g')
+            .attr('transform', 'translate('+ x_pos.toString() +',30)');
+        
+        gAge.call(sliderAge);
+        gAgeO.call(sliderAgeO);
+    });
+
+}
+
+function updateSlopeGraph(gender, goals, combinations, ageGap, ageOGap, attr, sinc, intel, amb, fun, shar) {
+    //console.log("Gender slope: " + gender + " Goals Slope: " + goals + " Bubbles Slope: " + combinations.length)
+    d3.json("data.json").then(function (data) {
+        data = data.filter(function(elem){
+            return elem.age >= ageGap[0] && elem.age <= ageGap[1] && elem.match == 1 && elem.age_o >= ageOGap[0] && elem.age_o <= ageOGap[1]
+                   && elem.attr_o >= attr[0] && elem.attr_o <= attr[1] && elem.sinc_o >= sinc[0] && elem.sinc_o <= sinc[1] && elem.intel_o >= intel[0] && elem.intel_o <= intel[1]
+                   && elem.amb_o >= amb[0] && elem.amb_o <= amb[1] && elem.fun_o >= fun[0] && elem.fun_o <= fun[1] && elem.shar_o >= shar[0] && elem.shar_o <= shar[1];
+        })
+        //gender is specified
+        if(gender != -1){
+            //goals are specified
+            if(goals.length != 0){
+                data = data.filter(function(elem){
+                    return elem.gender == gender && goals.includes(elem.goal) && elem.match == 1;
+                })
+            } if(combinations.length != 0){
+                data = data.filter(function(elem){
+                    return elem.gender == gender && checkBubbles(elem, combinations) && elem.match == 1;
+                })
+            }  else { //goals are not specified
+                data = data.filter(function(elem){
+                    return elem.gender == gender && elem.match == 1;
+                })
+            }
+        } else { //gender is not specified
+            //goals are specified
+            if(goals.length != 0){
+                data = data.filter(function(elem){
+                    return goals.includes(elem.goal) && elem.match == 1;
+                })
+            } if(combinations.length != 0){
+                data = data.filter(function(elem){
+                    return checkBubbles(elem, combinations) && elem.match == 1;
+                })
+            } else { //goals and gender are not specified
+                data = data.filter(function(elem){
+                    return elem.match == 1;
+                })
+            }
+        }
+
+        var data = data.filter((d) => {return d.age != -3 && d.age_o != -3 })
+        const svg = d3.select("#gSlope");
+
+        if (data.length == 0) {
+            alert("Combination not found in new data")
+            window.location.reload();
+        }
+    
+        var dimensions = ["age","age_o"]
+        // The path function take a row of the csv as input, and return x and y coordinates of the line to draw for this raw.
+        function path(d) {
+            return d3.line()(dimensions.map(function(p) { return [x(p), y[p](d[p])]; }));
+        }
+
+
+        // For each dimension, I build a linear scale. I store all in a y object
+        const y = {}
+        for (i in dimensions) {
+            if (i == 0) {
+                name = dimensions[i]
+                y[name] = d3.scaleLinear()
+                    .domain([currentAge[0],currentAge[1]])
+                    .range([heightSmaller-9, 7])
+            } else {
+                name = dimensions[i]
+                y[name] = d3.scaleLinear()
+                    .domain([currentAgeO[0],currentAgeO[1]])
+                    .range([heightSmaller-9, 7])
+            }
+        }
+
+
+         // Build the X scale -> it find the best position for each Y axis
+         x = d3.scalePoint()
+           .range([0, widthSmaller])
+           .padding(0)
+           .domain(dimensions);
+        
+        if (currentAge[1]-currentAge[0] <= 7 && currentAgeO[1]-currentAgeO[0] <= 7 ) {
+            svg.selectAll("myAxis")
+                .data(dimensions).enter()
+                .append("g")
+                .attr("transform", function(d) { return "translate(" + x(d) + ")"; })
+                .each(function(d) { if (d == "age") { d3.select("#slopeYAxis").call(d3.axisLeft().scale(y[d]).tickSizeOuter(0).ticks(currentAge[1]-currentAge[0])) } else {d3.select("#slopeYAxis2").call(d3.axisRight().scale(y[d]).tickSizeOuter(0).ticks(currentAgeO[1]-currentAgeO[0])) }; })
+        } else if (currentAge[1]-currentAge[0] <= 7 && currentAgeO[1]-currentAgeO[0] > 7) {
+            svg.selectAll("myAxis")
+                .data(dimensions).enter()
+                .append("g")
+
+                .attr("transform", function(d) { return "translate(" + x(d) + ")"; })
+                .each(function(d) { if (d == "age") { d3.select("#slopeYAxis").call(d3.axisLeft().scale(y[d]).tickSizeOuter(0).ticks(currentAge[1]-currentAge[0])) } else {d3.select("#slopeYAxis2").call(d3.axisRight().scale(y[d]).tickSizeOuter(0)) }; })
+        } else if (currentAge[1]-currentAge[0] > 7 && currentAgeO[1]-currentAgeO[0] <= 7) {
+            svg.selectAll("myAxis")
+                .data(dimensions).enter()
+                .append("g")
+
+                .attr("transform", function(d) { return "translate(" + x(d) + ")"; })
+                .each(function(d) { if (d == "age") { d3.select("#slopeYAxis").call(d3.axisLeft().scale(y[d]).tickSizeOuter(0)) } else {d3.select("#slopeYAxis2").call(d3.axisRight().scale(y[d]).tickSizeOuter(0).ticks(currentAgeO[1]-currentAgeO[0])) }; })
+        } else if (currentAge[1]-currentAge[0] > 7 && currentAgeO[1]-currentAgeO[0] > 7) {
+            svg.selectAll("myAxis")
+                .data(dimensions).enter()
+                .append("g")
+
+                .attr("transform", function(d) { return "translate(" + x(d) + ")"; })
+                .each(function(d) { if (d == "age") { d3.select("#slopeYAxis").call(d3.axisLeft().scale(y[d]).tickSizeOuter(0)) } else {d3.select("#slopeYAxis2").call(d3.axisRight().scale(y[d]).tickSizeOuter(0)) }; })
+        }
+
+    
+        var Tooltip = d3.select("body")
+           .append("div")
+           .style("opacity", 0)
+           .attr("class", "tooltip")
+           .style("background-color", "white")
+           .style("border", "solid")
+           .style("border-width", "1px")
+           .style("border-radius", "5px")
+           .style("height", "30px")
+           .style("width", "130px")
+
+
+        svg
+            .selectAll("path.mySlopePath")
+            .data(data, (d) => d.id)
+            .join(
+                (enter) => {
+                    //console.log("enter")
+                    lines = enter
+                        .append("path")
+                        .attr("class", "mySlopePath")
+                        .attr("d",  x(0))
+                        .attr("fill", "none")
+                        .attr("stroke", (d) =>  lineColor(d.gender))
+                        .attr("stroke-opacity", 0.5)
+                        .attr("stroke-width", 1.5)
+                        .on("mouseover", function(event, d) {
+                            d3.select(this)
+                              .transition()
+                              .duration(200)
+                              .attr("stroke-width", 6)
+                              .attr("stroke-opacity", 1)
+                              .attr("stroke", (d) =>  lineColor(d.gender))
+                              Tooltip.transition()
+                              .duration(200)
+                              .style("opacity", .9);
+                              Tooltip.html(slopeText(d))
+                              .style("left", (event.pageX + 20) + "px")
+                              .style("top", (event.pageY - 28) + "px");
+                          })
+                          .on("mousemove", function(event,d) {
+                            Tooltip.style("left", (event.pageX + 20) + "px")
+                                .style("top", (event.pageY - 28) + "px");
+                            })
+                          .on("mouseleave", function(d) {
+                            Tooltip.transition()
+                                .duration(200)
+                                .style("opacity", 0);
+                            d3.select(this)
+                              .transition()
+                              .duration(100)
+                              .attr("stroke-width", 2)
+                              .attr("stroke-opacity", 0.5)
+                              .attr("stroke", (d) =>  lineColor(d.gender))
+                          });
+                    lines
+                        .transition()
+                        .duration(1000)
+                        .attr("d",  path)
+                }, 
+                (update) => {
+                    //console.log("update")
+                    update
+                        .transition()
+                        .duration(1000)
+                        .attr("d",  path)
+                },
+                (exit) => {
+                    //console.log("exit")
+                    exit.remove();
+                }
+            )
+    });
+}
+
+function slopeText(d){
+    return "Age of Participant: " + d.age + "</br>" 
+    + "Age of Partner: " + d.age_o + "</br>";
+}
+
+/**age
+ * ===================================================================================
+ * -------------------------------------PARALLEL--------------------------------------
+ * ===================================================================================
+ */
+
+function lineColor(gender){
+    if(gender == 0){
+        return "#74c7fd";
+
+    } else {
+        return "#fb74fd";
+    }
+}
+
+
+function filterData(data) {
+    var array = [];
+    for (var i = 1; i <= 552; i++) {
+            var newData = data.filter((d) => {return d.id == i})
+            if (newData.length != 0) {
+                var object = {
+                    id: i,
+                    gender: newData[0].gender,
+                    attr_o:  newData[0].attr_o,
+                    sinc_o:  newData[0].sinc_o,
+                    intel_o:  newData[0].intel_o,
+                    amb_o:  newData[0].amb_o,
+                    fun_o: newData[0].fun_o,
+                    shar_o: newData[0].shar_o
+                }
+            }
+            array.push(object);
+
+    }
+    //console.log(array)
+    return array;
+}
+
+function filterDatav2(data){
+    var array = []
+    var seenIds = []
+    data.map((d) => {
+        if(!seenIds.includes(d.id)){
+            array.push(d)
+            seenIds.push(d.id)
+        }
     })
-    d3.select("#female").on("click", () => {
-        //updateParallelCoordinates(1);
-        currentGender = 1;
-        updateBubbleChart(currentGender, currentSelectedBars);
-        updateGoalBarChart(currentGender, bubbleCombinations);
+    //console.log(array)
+    return array;
+}
+
+function parallelLabels(d){
+    switch (d) {
+        case "attr_o":
+            return "Attractiveness";
+        case "sinc_o":
+            return "Sinceriness";
+        case "intel_o":
+            return "Intelligence";
+        case "amb_o":
+            return "Ambition";
+        case "fun_o":
+            return "Funiness";
+        case "shar_o":
+            return "Shared Interests";
+        default:
+            break;
+    }
+}
+
+function parallelText(d){
+    return "Attractiveness: " + d.attr_o + "</br>" 
+    + "Sinceriness: " + d.sinc_o + "</br>"
+    + "Intelligence: " + d.intel_o + "</br>" 
+    + "Ambition: " + d.amb_o + "</br>" 
+    + "Funiness: " + d.fun_o + "</br>" 
+    + "Shared Interests: " + d.shar_o;
+}
+
+function parallelAvgText(d){
+    return "Avg. Attractiveness: " + d.attr_o + "</br>" 
+    + "Avg. Sinceriness: " + d.sinc_o + "</br>"
+    + "Avg. Intelligence: " + d.intel_o + "</br>" 
+    + "Avg. Ambition: " + d.amb_o + "</br>" 
+    + "Avg. Funiness: " + d.fun_o + "</br>" 
+    + "Avg. Shared Interests: " + d.shar_o;
+}
+
+function calculateAverageValues(data){
+    var maleData = data.filter(function(elem){
+        return elem.gender == 1;
     })
-    d3.select("#all").on("click", () => {
-        //updateParallelCoordinates(-1);
-        currentGender = -1;
-        updateBubbleChart(currentGender, currentSelectedBars);
-        updateGoalBarChart(currentGender, bubbleCombinations);
+
+    //console.log("=== male data ===")
+    //console.log(maleData);
+
+    var femaleData = data.filter(function(elem){
+        return elem.gender == 0;
     })
+
+    //console.log("=== female data ===")
+    //console.log(femaleData);
+
+
+    var toReturn = [];
+
+    if (maleData.length != 0) {
+        var maleAverage = {
+            id: 0,
+            attr_o: Math.round(d3.mean(maleData, (d) => d.attr_o)),
+            sinc_o: Math.round(d3.mean(maleData, (d) => d.sinc_o)),
+            intel_o: Math.round(d3.mean(maleData, (d) => d.intel_o)),
+            fun_o: Math.round(d3.mean(maleData, (d) => d.fun_o)),
+            amb_o: Math.round(d3.mean(maleData, (d) => d.amb_o)),
+            shar_o: Math.round(d3.mean(maleData, (d) => d.shar_o)),
+        }
+
+        //console.log(maleAverage);
+        toReturn.push(maleAverage);
+    }
+    
+    if (femaleData.length != 0) {
+        var femaleAverage = {
+            id: 1,
+            attr_o: Math.round(d3.mean(femaleData, (d) => d.attr_o)),
+            sinc_o: Math.round(d3.mean(femaleData, (d) => d.sinc_o)),
+            intel_o: Math.round(d3.mean(femaleData, (d) => d.intel_o)),
+            fun_o: Math.round(d3.mean(femaleData, (d) => d.fun_o)),
+            amb_o: Math.round(d3.mean(femaleData, (d) => d.amb_o)),
+            shar_o: Math.round(d3.mean(femaleData, (d) => d.shar_o)),
+        }
+        toReturn.push(femaleAverage);
+    }
+
+    //console.log(femaleAverage);
+    return toReturn;
+}
+
+function createParallelCoordinates(id){
+    const svg = d3
+        .select(id)
+        .attr("width", widthBigger + margin.left + margin.right + 110)
+        .attr("height", heightBigger + margin.top + margin.bottom)
+        .append("g")
+        .attr("id", "gParallel")
+        .attr("transform", `translate(${margin.left}, ${margin.top})`);
+    
+    d3.json("data.json").then(function (data) {
+        //console.log("=====DATA ON CREATE=====")
+        data = filterDatav2(data)
+        //console.log("========================")
+
+        //var dimensions = Object.keys(data[0]).filter(function(d) { return d == "attr_o" || d == "sinc_o" || d == "intel_o" || d == "amb_o" || d == "fun_o" || d == "shar_o" });
+        var dimensions = ["attr_o", "sinc_o", "intel_o", "amb_o", "fun_o", "shar_o"];
+        
+        //calculate average values for male and female
+        var averageValues = calculateAverageValues(data);
+
+        // For each dimension, I build a linear scale. I store all in a y object
+        const y = {}
+        for (i in dimensions) {
+          name = dimensions[i]
+          y[name] = d3.scaleLinear()
+            .domain( [1, 10] )
+            .range([heightBigger, 50])
+        }
+
+        // Build the X scale -> it find the best position for each Y axis
+        x = d3.scalePoint()
+          .range([0, widthBigger-margin.left-margin.right])
+          .padding(0)
+          .domain(dimensions);
+
+        // The path function take a row of the csv as input, and return x and y coordinates of the line to draw for this raw.
+        function path(d) {
+            return d3.line()(dimensions.map(function(p) { return [x(p), y[p](d[p])]; }));
+        }
+
+        var Tooltip = d3.select("body")
+            .append("div")
+            .style("opacity", 0)
+            .attr("class", "tooltip")
+            .style("background-color", "white")
+            .style("border", "solid")
+            .style("border-width", "1px")
+            .style("border-radius", "5px")
+            .style("height", "90px")
+            .style("width", "150px")
+
+        // Draw the lines
+        svg
+          .selectAll("myPath")
+          .data(data, (d) => d.id)
+          .join("path")
+          .attr("d",  path)
+          .attr("class", "myPath")
+          .attr("fill", "none")
+          .attr("stroke", (d) =>  lineColor(d.gender))
+          .attr("stroke-opacity", 0.8)
+          .attr("stroke-width", 1)
+          .on("mouseover", function(event,d) {
+            d3.select(this)
+              .transition()
+              .duration(50)
+              .attr("stroke-width", 6)
+              .attr("stroke-opacity", 1)
+              .attr("stroke",  (d) =>  lineColor(d.gender))
+            Tooltip.transition()
+              .duration(100)
+              .style("opacity", .9);
+            Tooltip.html(parallelText(d))
+              .style("left", (event.pageX + 20) + "px")
+              .style("top", (event.pageY - 28) + "px");
+        })
+        .on("mousemove", function(event,d) {
+            Tooltip.style("left", (event.pageX + 20) + "px")
+                .style("top", (event.pageY - 28) + "px");
+        })
+        .on("mouseout", function(d) {
+            Tooltip.transition()
+                .duration(200)
+                .style("opacity", 0);
+            d3.select(this)
+            .transition()
+            .duration(50)
+            .attr("stroke-width", 1)
+            .attr("stroke-opacity", 0.8)
+            .attr("stroke", (d) =>  lineColor(d.gender))
+        })
+
+        svg
+            .selectAll("avgPath")
+            .data(averageValues, (d) => d.id)
+            .join("path")
+            .attr("d",  path)
+            .attr("class", "avgPath")
+            .attr("fill", "none")
+            .attr("stroke", (d) =>  {if (d.id == 1) {return "#145edf"} else {return "#cb06cb"}})
+            .attr("stroke-opacity", 0.8)
+            .attr("stroke-width", 7)
+            .attr("stroke-dasharray", ("3, 3"))
+            .on("mouseover", function(event,d) {
+                d3.select(this)
+                  .transition()
+                  .duration(100)
+                  .attr("stroke-width", 10)
+                Tooltip.transition()
+                  .duration(100)
+                  .style("opacity", .9);
+                Tooltip.html(parallelAvgText(d))
+                  .style("left", (event.pageX + 20) + "px")
+                  .style("top", (event.pageY - 28) + "px");
+            })
+            .on("mousemove", function(event,d) {
+                Tooltip.style("left", (event.pageX + 20) + "px")
+                    .style("top", (event.pageY - 28) + "px");
+            })
+            .on("mouseout", function(d) {
+                Tooltip.transition()
+                    .duration(200)
+                    .style("opacity", 0);
+                d3.select(this)
+                .transition()
+                .duration(100)
+                .attr("stroke-width", 7)
+                .attr("stroke-opacity", 0.8)
+            })
+        
+        //svg.append("text").attr("x", widthBigger).attr("y", 20).text("Importance of").style("font-size", "20px").attr("alignment-baseline","middle")
+        //svg.append("text").attr("x", widthBigger).attr("y", 40).text(".. in a partner").style("font-size", "20px").attr("alignment-baseline","middle")
+        svg.append("text").attr("x", widthBigger/3).attr("y", -5).text("Importance of .. in a partner").style("font-size", "20px").attr("font-weight", "light")
+
+        //Legend
+        svg.append("circle").attr("cx",widthBigger - 50).attr("cy",130).attr("r", 6).style("fill", "#74c7fd")
+        .on("click", () => {
+            currentGender = 0;
+            callUpdates();
+        })
+        .on("mouseover", function() {
+            d3.select(this).style("fill", "#3b7a57")
+        })
+        .on("mouseout", function() {
+            d3.select(this).style("fill", "#74c7fd")
+        })
+
+        svg.append("circle").attr("cx",widthBigger - 50).attr("cy",160).attr("r", 6).style("fill", "#fb74fd")
+        .on("click", () => {
+            currentGender = 1;
+            callUpdates();
+        })
+        .on("mouseover", function() {
+            d3.select(this).style("fill", "#3b7a57")
+        })
+        .on("mouseout", function() {
+            d3.select(this).style("fill", "#fb74fd")
+        })
+
+        svg.append("circle").attr("cx",widthBigger - 50).attr("cy",190).attr("r", 6).style("fill", "#145edf")
+        svg.append("circle").attr("cx",widthBigger - 50).attr("cy",220).attr("r", 6).style("fill", "#cb06cb")
+        svg.append("circle").attr("cx",widthBigger - 50).attr("cy",250).attr("r", 6).style("fill", "#808080")
+        .on("click", () => {
+            currentGender = -1;
+            callUpdates();
+        })
+        .on("mouseover", function() {
+            d3.select(this).style("fill", "#3b7a57")
+        })
+        .on("mouseout", function() {
+            d3.select(this).style("fill", "#808080")
+        })
+
+        svg.append("text").attr("x", widthBigger - 30).attr("y", 135).text("Male participants").style("font-size", "15px").attr("alignment-baseline","middle")
+        .on("click", () => {
+            currentGender = 0;
+            callUpdates();
+        })
+        svg.append("text").attr("x", widthBigger - 30).attr("y", 165).text("Female participants").style("font-size", "15px").attr("alignment-baseline","middle")
+        .on("click", () => {
+            currentGender = 1;
+            callUpdates();
+        })
+        svg.append("text").attr("x", widthBigger - 30).attr("y", 195).text("Average Values Male").style("font-size", "15px").attr("alignment-baseline","middle")
+        svg.append("text").attr("x", widthBigger - 30).attr("y", 225).text("Average Values Female").style("font-size", "15px").attr("alignment-baseline","middle")
+        svg.append("text").attr("x", widthBigger - 30).attr("y", 255).text("All participants").style("font-size", "15px").attr("alignment-baseline","middle")
+        .on("click", () => {
+            currentGender = -1;
+            callUpdates();
+        })
+        
+
+        // Draw the axis:
+        svg.selectAll("myAxis")
+          // For each dimension of the dataset I add a 'g' element:
+          .data(dimensions).enter()
+          .append("g")
+          // I translate this element to its right position on the x axis
+          .attr("transform", function(d) { return "translate(" + x(d) + ")"; })
+          // And I build the axis with the call function
+          //.each(function(d) { d3.select(this).call(d3.axisLeft().scale(y[d])); })
+          // Add axis title
+          .append("text")
+            .style("text-anchor", "middle")
+            .attr("y", 25)
+            .text(parallelLabels)
+            .style("fill", "black")
+
+        //console.log(parallelCoordsSliders)
+        var sliderAttr = d3
+            .sliderLeft()
+            .min(1)
+            .max(10)
+            .width(200)
+            .height(heightBigger-50)
+            .ticks(10)
+            .tickValues([1,2,3,4,5,6,7,8,9,10])
+            .step(1)
+            .default([1, 10])
+            .fill('#1a4b8e')
+            .on('end', val => {
+                currentAttr = val;
+                callUpdates();
+            });
+
+        var sliderSinc = d3
+            .sliderLeft()
+            .min(1)
+            .max(10)
+            .width(200)
+            .height(heightBigger-50)
+            .ticks(10)
+            .tickValues([1,2,3,4,5,6,7,8,9,10])
+            .step(1)
+            .default([1, 10])
+            .fill('#1a4b8e')
+            .on('end', val => {
+                currentSinc = val;
+                callUpdates();
+            });
+
+        var sliderIntel = d3
+            .sliderLeft()
+            .min(1)
+            .max(10)
+            .width(200)
+            .height(heightBigger-50)
+            .ticks(10)
+            .tickValues([1,2,3,4,5,6,7,8,9,10])
+            .step(1)
+            .default([1, 10])
+            .fill('#1a4b8e')
+            .on('end', val => {
+                currentIntel = val;
+                callUpdates();
+            });
+
+        var sliderFun = d3
+            .sliderRight()
+            .min(1)
+            .max(10)
+            .width(200)
+            .height(heightBigger-50)
+            .ticks(10)
+            .tickValues([1,2,3,4,5,6,7,8,9,10])
+            .step(1)
+            .default([1, 10])
+            .fill('#1a4b8e')
+            .on('end', val => {
+                currentFun = val;
+                callUpdates();
+            });
+
+
+        var sliderAmb = d3
+            .sliderRight()
+            .min(1)
+            .max(10)
+            .width(200)
+            .height(heightBigger-50)
+            .ticks(10)
+            .tickValues([1,2,3,4,5,6,7,8,9,10])
+            .step(1)
+            .default([1, 10])
+            .fill('#1a4b8e')
+            .on('end', val => {
+                currentAmb = val;
+                callUpdates();
+            });
+
+        var sliderShar = d3
+            .sliderRight()
+            .min(1)
+            .max(10)
+            .width(200)
+            .height(heightBigger-50)
+            .ticks(10)
+            .tickValues([1,2,3,4,5,6,7,8,9,10])
+            .step(1)
+            .default([1, 10])
+            .fill('#1a4b8e')
+            .on('end', val => {
+                currentShar = val;
+                callUpdates();
+            });
+
+        var x_pos = x("attr_o") + 100 ;
+        var gRange = d3
+          .select(id)
+          .append('svg')
+          .attr('width', 200)
+          .attr('height', 450)
+          .append('g')
+          .attr('transform', 'translate('+ x_pos.toString() +',65)');
+        
+        x_pos = x("sinc_o") + 100 ;
+        var gSinc = d3
+            .select(id)
+            .append('svg')
+            .attr('width', 400)
+            .attr('height', 450)
+            .append('g')
+            .attr('transform', 'translate(' + x_pos.toString() + ',65)')
+
+        x_pos = x("intel_o") + 100 ;
+        var gIntel = d3
+            .select(id)
+            .append('svg')
+            .attr('width', 600)
+            .attr('height', 450)
+            .append('g')
+            .attr('transform', 'translate(' + x_pos.toString() + ',65)')
+
+        x_pos = x("fun_o") + 100 ;
+        var gFun = d3
+            .select(id)
+            .append('svg')
+            .attr('width', 800)
+            .attr('height', 450)
+            .append('g')
+            .attr('transform', 'translate(' + x_pos.toString() + ',65)')
+        
+        x_pos = x("amb_o") + 100 ;
+        var gAmb = d3
+            .select(id)
+            .append('svg')
+            .attr('width', 1000)
+            .attr('height', 450)
+            .append('g')
+            .attr('transform', 'translate(' + x_pos.toString() + ',65)')
+        
+        x_pos = x("shar_o") + 100 ;
+        var gShar = d3
+            .select(id)
+            .append('svg')
+            .attr('width', 1200)
+            .attr('height', 450)
+            .append('g')
+            .attr('transform', 'translate(' + x_pos.toString() + ',65)')
+
+
+        gRange.call(sliderAttr);
+        gSinc.call(sliderSinc);
+        gIntel.call(sliderIntel);
+        gFun.call(sliderFun);
+        gAmb.call(sliderAmb);
+        gShar.call(sliderShar);
+            
+    });
+}
+
+function updateParallelCoordinates(gender, goals, combinations, ageGap, ageOGap, attr, sinc, intel, amb, fun, shar){
+    //console.log("Gender parallel: " + gender)
+    d3.json("data.json").then(function (data) {
+        data = data.filter(function(elem){
+            return elem.age >= ageGap[0] && elem.age <= ageGap[1] && elem.age_o >= ageOGap[0] && elem.age_o <= ageOGap[1]
+                   && elem.attr_o >= attr[0] && elem.attr_o <= attr[1] && elem.sinc_o >= sinc[0] && elem.sinc_o <= sinc[1] && elem.intel_o >= intel[0] && elem.intel_o <= intel[1]
+                   && elem.amb_o >= amb[0] && elem.amb_o <= amb[1] && elem.fun_o >= fun[0] && elem.fun_o <= fun[1] && elem.shar_o >= shar[0] && elem.shar_o <= shar[1];
+        })
+        //gender is specified
+        if(gender != -1){
+            //goals are specified
+            if(goals.length != 0){
+                data = data.filter(function(elem){
+                    return elem.gender == gender && goals.includes(elem.goal);
+                })
+            } if(combinations.length != 0){
+                data = data.filter(function(elem){
+                    return elem.gender == gender && checkBubbles(elem, combinations);
+                })
+            }  else { //goals are not specified
+                data = data.filter(function(elem){
+                    return elem.gender == gender;
+                })
+            }
+        } else { //gender is not specified
+            //goals are specified
+            if(goals.length != 0){
+                data = data.filter(function(elem){
+                    return goals.includes(elem.goal);
+                })
+            } if(combinations.length != 0){
+                data = data.filter(function(elem){
+                    return checkBubbles(elem, combinations);
+                })
+            } else { //goals and gender are not specified
+                data = data
+            }
+        }
+
+        const svg = d3.select("#gParallel");
+
+        //console.log("=====DATA=====")
+        data = filterDatav2(data);
+        //console.log("==============")
+        var averageValues = calculateAverageValues(data);
+        //console.log(averageValues);
+
+        if (data.length == 0) {
+            alert("Combination not found in new data")
+            window.location.reload();
+        }
+
+
+        //var dimensions = Object.keys(data[0]).filter(function(d) { return d == "attr_o" || d == "sinc_o" || d == "intel_o" || d == "amb_o" || d == "fun_o" || d == "shar_o" });
+        var dimensions = ["attr_o", "sinc_o", "intel_o", "amb_o", "fun_o", "shar_o"];
+        
+        // The path function take a row of the csv as input, and return x and y coordinates of the line to draw for this raw.
+        function path(d) {
+            return d3.line()(dimensions.map(function(p) { return [x(p), y[p](d[p])]; }));
+        }
+
+        // For each dimension, I build a linear scale. I store all in a y object
+        // For each dimension, I build a linear scale. I store all in a y object
+        const y = {}
+        for (i in dimensions) {
+          var name = dimensions[i]
+          y[name] = d3.scaleLinear()
+            .domain( [1, 10] )
+            .range([heightBigger, 50])
+        }
+
+        // Build the X scale -> it find the best position for each Y axis
+        x = d3.scalePoint()
+          .range([0, widthBigger-margin.left-margin.right])
+          .padding(0)
+          .domain(dimensions);
+        
+        var Tooltip = d3.select("body")
+          .append("div")
+          .style("opacity", 0)
+          .attr("class", "tooltip")
+          .style("background-color", "white")
+          .style("border", "solid")
+          .style("border-width", "1px")
+          .style("border-radius", "5px")
+          .style("height", "85px")
+          .style("width", "130px")
+
+        svg
+            .selectAll("path.myPath")
+            .data(data, (d) => d.id)
+            .join(
+                (enter) => {
+                    lines = enter
+                        .append("path")
+                        .attr("class", "myPath")
+                        .attr("d",  x(0))
+                        .attr("fill", "none")
+                        .attr("stroke", (d) =>  lineColor(d.gender))
+                        .attr("stroke-opacity", 0.8)
+                        .attr("stroke-width", 1)
+                        .on("mouseover", function(event,d) {
+                            d3.select(this)
+                              .transition()
+                              .duration(50)
+                              .attr("stroke-width", 6)
+                              .attr("stroke-opacity", 1)
+                              .attr("stroke",  (d) =>  lineColor(d.gender))
+                            Tooltip.transition()
+                              .duration(100)
+                              .style("opacity", .9);
+                            Tooltip.html(parallelText(d))
+                              .style("left", (event.pageX + 20) + "px")
+                              .style("top", (event.pageY - 28) + "px");
+                        })
+                        .on("mousemove", function(event,d) {
+                            Tooltip.style("left", (event.pageX + 20) + "px")
+                                .style("top", (event.pageY - 28) + "px");
+                        })
+                        .on("mouseout", function(d) {
+                            Tooltip.transition()
+                                .duration(100)
+                                .style("opacity", 0);
+                            d3.select(this)
+                            .transition()
+                            .duration(50)
+                            .attr("stroke-width", 1)
+                            .attr("stroke-opacity", 0.8)
+                            .attr("stroke", (d) =>  lineColor(d.gender))
+                        })
+                    lines
+                        .transition()
+                        .duration(1500)
+                        .attr("d",  path)
+                }, 
+                (update) => {
+                    update
+                        .transition()
+                        .duration(1500)
+                        .attr("d",  path)
+                },
+                (exit) => {
+                    exit.remove();
+                }
+            )
+
+        svg
+            .selectAll("path.avgPath")
+            .data(averageValues, (d) => d.id)
+            .join(
+                (enter) => {
+                    lines = enter
+                        .append("path")
+                        .attr("class", "avgPath")
+                        .attr("d",  x(0))
+                        .attr("fill", "none")
+                        .attr("stroke", (d) =>  {if (d.id == 1) {return "#145edf"} else {return "#cb06cb"}})
+                        .attr("stroke-opacity", 0.8)
+                        .attr("stroke-width", 7)
+                        .attr("stroke-dasharray", ("3, 3"))
+                        .on("mouseover", function(event,d) {
+                            d3.select(this)
+                              .transition()
+                              .duration(50)
+                              .attr("stroke-width", 10)
+                            Tooltip.transition()
+                              .duration(100)
+                              .style("opacity", .9);
+                            Tooltip.html(parallelAvgText(d))
+                              .style("left", (event.pageX + 20) + "px")
+                              .style("top", (event.pageY - 28) + "px");
+                        })
+                        .on("mousemove", function(event,d) {
+                            Tooltip.style("left", (event.pageX + 20) + "px")
+                                .style("top", (event.pageY - 28) + "px");
+                        })
+                        .on("mouseout", function(d) {
+                            Tooltip.transition()
+                                .duration(100)
+                                .style("opacity", 0);
+                            d3.select(this)
+                            .transition()
+                            .duration(50)
+                            .attr("stroke-width", 7)
+                            .attr("stroke-opacity", 0.8)
+                        })
+
+                    lines
+                        .transition()
+                        .duration(1500)
+                        .attr("d",  path)
+                },
+                (update) => {
+                    update
+                        .transition()
+                        .duration(1500)
+                        .attr("d",  path)
+                },
+                (exit) => {
+                    exit.remove();
+                }
+            )
+    });
 }
 
 /**
@@ -67,35 +1168,33 @@ function barChartColor(d){
 function createGoalBarChart(id){
     const svg = d3
         .select(id)
-        .attr("width", width + margin.left + margin.right)
-        .attr("height", height + margin.top + margin.bottom)
+        .attr("width", widthSmaller*1.4 + margin.left + margin.right)
+        .attr("height", heightSmaller + margin.top + margin.bottom)
         .append("g")
         .attr("id", "gGoal")
         .attr("transform", `translate(${margin.left}, ${margin.top})`);
 
     d3.json("data.json").then(function (data) {
-        
-        var percentageData = updateGoalData(data);
-        //console.log(percentageData)
 
-        var keys = percentageData.map((d) => {return d.goal})
-        //console.log(keys)
+        var percentageData = updateGoalData(data);
+        
+        //var keys = percentageData.map((d) => {return d.goal})
 
         const x = d3
             .scaleLinear()
             .domain([0, d3.max(percentageData, (d) => d.percentage + 10 > 100 ? 100 : d.percentage + 10)])
-            .range([0 , width]);
+            .range([0 , widthSmaller*1.45]);
 
         svg
             .append("g")
             .attr("id", "gXAxis")
-            .attr("transform", `translate(0, ${height})`)
+            .attr("transform", `translate(0, ${heightSmaller})`)
             .call(d3.axisBottom(x).tickSizeOuter(0));
         
         const y = d3
             .scaleBand()
             .domain(percentageData.map((d) => d.goal))
-            .range([0, height])
+            .range([0, heightSmaller])
             .padding(0.1);
 
         svg
@@ -146,6 +1245,7 @@ function createGoalBarChart(id){
                 //console.log("clicked bar")
                 var id = d.id
                 //clicked bar is already selected, need to deselect
+               // console.log("currentSelectedBars: ", currentSelectedBars)
                 if(currentSelectedBars.includes(id)){
                     //console.log("Popping bar: " + id)
                     //array.pop doesn't work because it always removes the last element
@@ -188,7 +1288,9 @@ function createGoalBarChart(id){
                     })
                     .attr("opacity", 0.3);
                 }
-                updateBubbleChart(currentGender, currentSelectedBars);
+                updateBubbleChart(currentGender, currentSelectedBars, currentAge, currentAgeO, currentAttr, currentSinc, currentIntel, currentAmb, currentFun, currentShar);
+                updateSlopeGraph(currentGender, currentSelectedBars, bubbleCombinations, currentAge, currentAgeO, currentAttr, currentSinc, currentIntel, currentAmb, currentFun, currentShar);
+                updateParallelCoordinates(currentGender, currentSelectedBars, bubbleCombinations, currentAge, currentAgeO, currentAttr, currentSinc, currentIntel, currentAmb, currentFun, currentShar);
                 
             })
 
@@ -196,15 +1298,25 @@ function createGoalBarChart(id){
            .append("text")
            .attr("class", "x label")
            .attr("text-anchor", "middle")
-           .attr("x", width - 140)
-           .attr("y", height + 35)
+           .attr("x", widthSmaller - 140)
+           .attr("y", heightSmaller + 35)
            .text("Percentage of participants");
     });
 }
 
-function updateGoalBarChart(gender, combinations){
-    console.log("Gender: " + gender + " Combinations specified: " + combinations.length)
+function updateGoalBarChart(gender, combinations, ageGap, ageOGap, attr, sinc, intel, amb, fun, shar){
+   // console.log("=======BAR CHART=======")
+   // console.log("Age Gap: " + ageGap)
+   // console.log("Age OGap: " + ageOGap)
+    //console.log("Gender: " + gender + " Combinations specified: " + combinations)
+    //console.log("=======================")
     d3.json("data.json").then(function (data) {
+        //update according ages
+        data = data.filter(function(elem){
+            return elem.age >= ageGap[0] && elem.age <= ageGap[1] && elem.age_o >= ageOGap[0] && elem.age_o <= ageOGap[1]
+                   && elem.attr_o >= attr[0] && elem.attr_o <= attr[1] && elem.sinc_o >= sinc[0] && elem.sinc_o <= sinc[1] && elem.intel_o >= intel[0] && elem.intel_o <= intel[1]
+                   && elem.amb_o >= amb[0] && elem.amb_o <= amb[1] && elem.fun_o >= fun[0] && elem.fun_o <= fun[1] && elem.shar_o >= shar[0] && elem.shar_o <= shar[1];
+        })
         //if gender is specified
         if(gender != -1){
             //if shar_o and imprace are specified
@@ -230,20 +1342,38 @@ function updateGoalBarChart(gender, combinations){
         const svg = d3.select("#gGoal");
 
         var percentageData = updateGoalData(data);
-        console.log(percentageData)
+
+        //console.log("percentage data: ", percentageData, "selected bars: ", currentSelectedBars)
+
+        percentageData.forEach(element => { 
+            if (element.percentage == 0 && currentSelectedBars.includes(element.id)) {
+                const index = currentSelectedBars.indexOf(element.id);
+                currentSelectedBars.splice(index, 1);
+                //console.log("antes update: ",currentSelectedBars)
+                if (currentSelectedBars.length == 0) {
+                    alert("Combination not found in new data")
+                    window.location.reload();
+
+                }
+            }
+          
+        });
+
 
         const x = d3
             .scaleLinear()
             .domain([0, d3.max(percentageData, (d) => d.percentage + 10 > 100 ? 100 : d.percentage + 10)])
-            .range([0 , width]);
+            .range([0 , widthSmaller*1.45]);
         
         svg.select("#gXAxis").call(d3.axisBottom(x).tickSizeOuter(0));
 
         const y = d3
             .scaleBand()
             .domain(percentageData.map((d) => d.goal))
-            .range([0, height])
+            .range([0, heightSmaller])
             .padding(0.1);
+        
+
 
         svg.select("#gYAxis").call(d3.axisLeft(y).tickSizeOuter(0));
         
@@ -278,7 +1408,9 @@ function updateGoalBarChart(gender, combinations){
                     exit.remove();
                 }
             );
+    updateBarOpacity();
     });
+
 }
 
 function updateGoalData(data){
@@ -375,7 +1507,7 @@ function sameValuesData(data) {
             }
         }
     }
-    console.log(array)
+    //console.log(array)
     return array;
 }
 
@@ -400,15 +1532,19 @@ function checkBubbles(d, array){
     return flag;
 }
 
+
+
 function createBubbleChart(id) {
     const svg = d3
         .select(id)
-        .attr('width',  width + margin.left + margin.right)
-        .attr('height',  height + margin.top + margin.bottom)
+        .attr('width',  widthSmaller*1.2 + margin.left + margin.right)
+        .attr('height',  heightSmaller + margin.top + margin.bottom)
         //append grouping element 'g' that allows us to apply margins
         .append("g")
         .attr("id","gBubbleChart")
         .attr('transform', `translate(${margin.left}, ${margin.top})`);
+    
+
     d3.json("data.json").then(function (data) {
         var array = sameValuesData(data);
         //console.log(array)
@@ -416,28 +1552,29 @@ function createBubbleChart(id) {
         const x = d3
             .scaleLinear()
             .domain([10, 0])
-            .range([width, 0]);
+            .range([widthSmaller*1.35, 0]);
         svg
             .append("g")
             .attr("id", "gXAxis")
-            .attr("transform", `translate(0, ${height})`)
+            .attr("transform", `translate(0, ${heightSmaller})`)
             .call(d3.axisBottom(x));
         svg
             .append("text")
             .attr("class", "x label")
             .attr("text-anchor", "middle")
-            .attr("x", width - 120)
-            .attr("y", height + 35)
+            .attr("x", widthSmaller - 120)
+            .attr("y", heightSmaller + 35)
             .text("Importance of Shared Interests");
     
         const y = d3
             .scaleLinear()
             .domain([0, 10])
-            .range([height, 0]);
+            .range([heightSmaller, 0]);
         svg
             .append("g")
             .attr("id", "gYAxis")
             .call(d3.axisLeft(y).tickFormat(d => d!=-1 ? d : null));
+        
             
         var Tooltip = d3.select("body")
             .append("div")
@@ -448,7 +1585,7 @@ function createBubbleChart(id) {
             .style("border-width", "1px")
             .style("border-radius", "5px")
             .style("height", "45px")
-            .style("width", "170px")
+            .style("width", "200px")
         svg
             .selectAll("circle.circleValues") 
             .data(array, (d) => d.id) 
@@ -460,6 +1597,7 @@ function createBubbleChart(id) {
             .attr("r", (d) => bubbleSize(d.amount))
             .attr("fill", "#4dde12")
             .attr("opacity", 0.9)
+            
             .on("mouseover", function(event,d) {
                 Tooltip.transition()
                   .duration(200)
@@ -468,9 +1606,16 @@ function createBubbleChart(id) {
                   .style("fill", "#3b7a57")                
             })
             .on("mousemove", function(event,d) {
-                Tooltip.html("Nr of participants: " + d.amount + "<br>" +  "Shar_o: " + d.x + "<br>" + "Imprace: " + d.y)
-                  .style("left", (event.pageX + 20) + "px")
-                  .style("top", (event.pageY - 28) + "px")
+                if (d.x >= 6) {
+                    Tooltip.html("Number of participants: " + d.amount + "<br>" +  "Importance of Shared Interests: " + d.x + "<br>" + "Importance of Partner's Race: " + d.y)
+                    .style("left", (event.pageX - 220) + "px")
+                    .style("top", (event.pageY - 28) + "px")
+                }
+                else {
+                    Tooltip.html("Number of participants: " + d.amount + "<br>" +  "Importance of Shared Interests: " + d.x + "<br>" + "Importance of Partner's Race: " + d.y)
+                    .style("left", (event.pageX + 20) + "px")
+                    .style("top", (event.pageY - 28) + "px")
+                } 
             })
             .on("mouseout", function(d) {
                 Tooltip.transition()
@@ -479,7 +1624,8 @@ function createBubbleChart(id) {
                 d3.select(this)
                     .style("fill", "#4dde12")   
             })
-            .on("click", (event, d) => onClickBubbles(event, d));          
+            .on("click", (event, d) => onClickBubbles(event, d));      
+                
 
         svg
             .append("text")
@@ -490,9 +1636,13 @@ function createBubbleChart(id) {
             .attr("dy", ".75em")
             .attr("transform", "rotate(-90)")
             .text("Importance of Partner's Race");
-        });
         
+        });
+    
 }
+
+
+
 
 function onClickBubbles(event, d){
     //combination we're analyzing
@@ -532,7 +1682,7 @@ function onClickBubbles(event, d){
         bubbleCombinations.push(combination);
 
         //bubbles that aren't selected stay 0.2 opacity
-        d3.selectAll(".itemValue").attr("opacity", 0.2);
+        d3.selectAll(".itemValue").attr("opacity", 0.3);
 
         //bubbles that are selected stay 0.9 opacity
         d3.selectAll(".itemValue")
@@ -542,12 +1692,60 @@ function onClickBubbles(event, d){
             .attr("opacity", 0.9);
     }
     //buttonClick(d.id, d.amount)
-    updateGoalBarChart(currentGender, bubbleCombinations);
+    //updateGoalBarChart(currentGender, bubbleCombinations, currentAge, currentAgeO, currentAttr, currentSinc, currentIntel, currentAmb, currentFun, currentShar);
+    //updateSlopeGraph(currentGender, currentSelectedBars, bubbleCombinations, currentAge, currentAgeO, currentAttr, currentSinc, currentIntel, currentAmb, currentFun, currentShar);;
+    callUpdates();
 }
 
-function updateBubbleChart(gender, goals) {
-    console.log("Gender: " + gender + " Goals: " + goals.length)
+
+function onClickOutsideBubble(){
+    while (currentSelectedBubbles.length != 0) {
+        currentSelectedBubbles.pop();
+        bubbleCombinations.pop();
+    }
+    callUpdates();
+}
+
+function onClickOutsideBar(){
+    while (currentSelectedBars.length != 0) {
+        currentSelectedBars.pop();
+    }
+    callUpdates();
+}
+
+function checkOutsideClickBubble(x , y){
+    //console.log(clientWidth/85.78, clientWidth/26.62  , clientHeight/6.16 , clientHeight/1.809   )
+
+    return (
+        x > clientWidth/85.78 && x < clientWidth/26.62 && y > clientHeight/6.16 && y < clientHeight/1.809  )//area 1
+    || (x > clientWidth/3.44 && x < clientWidth/3.039 && y > clientHeight/6.16 && y < clientHeight/1.809  )  //area 2
+    || (x > clientWidth/85.78  && x < clientWidth/3.039 && y > clientHeight/6.16 && y < clientHeight/5.04) //area 3
+    || (x > clientWidth/85.78  && x < clientWidth/3.039 && y > clientHeight/2.007 && y < clientHeight/1.809) //area 4
+}
+
+function checkOutsideClickBar(x , y){
+    return (
+        x > clientWidth/2.016 && x < clientWidth/1.8 && y > clientHeight/1.75 && y < clientHeight/1.044 ) //area 1
+    || (x > clientWidth/1.232 && x < clientWidth/1.12 && y > clientHeight/1.75 && y < clientHeight/1.044 )  //area 2
+    || (x > clientWidth/2.016  && x < clientWidth/1.12 && y > clientHeight/1.75 && y < clientHeight/1.68 ) //area 3
+    || (x > clientWidth/2.016  && x < clientWidth/1.12 && y > clientHeight/1.105 && y < clientHeight/1.044) //area 4
+}
+
+function updateBubbleChart(gender, goals, ageGap, ageOGap, attr, sinc, intel, amb, fun, shar) {
+    //console.log("======= BUBBLE ========")
+    //console.log("Gender: " + gender + " Goals: " + goals.length)
+    //console.log("Age Gap: " + ageGap)
+    //console.log("bars",currentSelectedBars.length)
+
+    //console.log("Age OGap: " + ageOGap)
+    //console.log("=======================")
+    //update according ages
     d3.json("data.json").then(function (data) {
+        data = data.filter(function(elem){
+            return elem.age >= ageGap[0] && elem.age <= ageGap[1] && elem.age_o >= ageOGap[0] && elem.age_o <= ageOGap[1]
+                   && elem.attr_o >= attr[0] && elem.attr_o <= attr[1] && elem.sinc_o >= sinc[0] && elem.sinc_o <= sinc[1] && elem.intel_o >= intel[0] && elem.intel_o <= intel[1]
+                   && elem.amb_o >= amb[0] && elem.amb_o <= amb[1] && elem.fun_o >= fun[0] && elem.fun_o <= fun[1] && elem.shar_o >= shar[0] && elem.shar_o <= shar[1];
+        })
         //gender is specified
         if(gender != -1){
             //goals are specified
@@ -588,28 +1786,40 @@ function updateBubbleChart(gender, goals) {
                 bubbleCombinations.forEach(elem => {
                     const index2 = currentSelectedBubbles.findIndex(elem2 => elem.x == elem2.x && elem.y == elem2.y);
                     if (index2 <= -1) {
-                        console.log("Combination not found in new data")
                         bubbleCombinations.splice(index2, 1);
+                        alert("Combination not found in new data")
+                        window.location.reload();
                     }
                 })
             }
         });
 
-        //console.log(currentSelectedBubbles)
 
         const x = d3
             .scaleLinear()
             .domain([10, 0])
-            .range([width, 0]);
+            .range([widthSmaller*1.35, 0]);
         
         svg.select("#gXAxis").call(d3.axisBottom(x).tickSizeOuter(0));
 
         const y = d3
             .scaleLinear()
             .domain([0, 10])
-            .range([height, 0]);
+            .range([heightSmaller, 0]);
 
         svg.select("#gYAxis").call(d3.axisLeft(y).tickFormat(d => d!=-1 ? d : null));
+
+        var Tooltip = d3.select("body")
+            .append("div")
+            .style("opacity", 0)
+            .attr("class", "tooltip")
+            .style("background-color", "white")
+            .style("border", "solid")
+            .style("border-width", "1px")
+            .style("border-radius", "5px")
+            .style("height", "76px")
+            .style("width", "170px")
+        
         
         svg
             .selectAll("circle.circleValues") 
@@ -623,8 +1833,34 @@ function updateBubbleChart(gender, goals) {
                     .attr("cy", (d) => y(d.y))
                     .attr("r", 0)
                     .attr("fill", "#4dde12")
-                    .attr("opacity", 0.8)
-                    .on("click", (event, d) => onClickBubbles(event, d));          
+                    .attr("opacity", 0.8)                    
+                    .on("mouseover", function(event,d) {
+                        Tooltip.transition()
+                          .duration(200)
+                          .style("opacity", 1)
+                        d3.select(this)
+                          .style("fill", "#3b7a57")                
+                    })
+                    .on("mousemove", function(event,d) {
+                        if (d.x > 7) {
+                            Tooltip.html("Nr of participants: " + d.amount + "<br>" +  "Importance of Shared Interests: " + d.x + "<br>" + "Importance of Partner's Race: " + d.y)
+                            .style("left", (event.pageX - 180) + "px")
+                            .style("top", (event.pageY-28) + "px")
+                        }
+                        else {
+                            Tooltip.html("Nr of participants: " + d.amount + "<br>" +  "Importance of Shared Interests: " + d.x + "<br>" + "Importance of Partner's Race: " + d.y)
+                            .style("left", (event.pageX + 20) + "px")
+                            .style("top", (event.pageY - 28) + "px")
+                        } 
+                    })
+                    .on("mouseout", function(d) {
+                        Tooltip.transition()
+                            .duration(200)
+                            .style("opacity", 0);
+                        d3.select(this)
+                            .style("fill", "#4dde12")   
+                    })
+                    .on("click", (event, d) => onClickBubbles(event, d));   
                 circles
                     .transition()
                     .duration(1000)
@@ -659,3 +1895,17 @@ function updateBubbleOpacity(){
         d3.selectAll(".itemValue").attr("opacity", 0.8);
     }
 }
+
+function updateBarOpacity(){
+    if(currentSelectedBars.length != 0) {
+        d3.selectAll(".barItemValue")
+          .filter(function(d){
+            return !currentSelectedBars.includes(d.id);
+          })
+          .attr("opacity", 0.3);
+    } else {
+        d3.selectAll(".barItemValue").attr("opacity", 1.0);
+    }
+}
+
+
